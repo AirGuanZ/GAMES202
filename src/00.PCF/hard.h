@@ -2,7 +2,7 @@
 
 #include "./common.h"
 
-class MeshRendererNoShadow : public agz::misc::uncopyable_t
+class MeshRendererHardShadow : public agz::misc::uncopyable_t
 {
 public:
 
@@ -11,6 +11,8 @@ public:
     void setCamera(const Mat4 &viewProj);
 
     void setLight(const Light &light);
+
+    void setShadowMap(ComPtr<ID3D11ShaderResourceView> sm, const Mat4 &viewProj);
 
     void begin();
 
@@ -24,8 +26,9 @@ private:
 
     struct VSTransform
     {
-        Mat4 World;
+        Mat4 world;
         Mat4 WVP;
+        Mat4 lightWVP;
     };
 
     ComPtr<ID3D11InputLayout> inputLayout_;
@@ -38,6 +41,9 @@ private:
 
     ConstantBufferSlot<PS> *psLightSlot_ = nullptr;
     ConstantBuffer<Light>   psLight_;
-    
+
+    ShaderResourceViewSlot<PS> *psShadowMapSlot_ = nullptr;
+
+    Mat4 lightViewProj_;
     Mat4 viewProj_;
 };

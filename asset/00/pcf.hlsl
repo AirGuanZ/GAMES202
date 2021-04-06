@@ -4,8 +4,6 @@
 
 cbuffer PSShadowMap
 {
-    float4x4 ShadowMapViewProj;
-
     float ShadowMapResolution;
     float ShadowMapFilterSize;
     int   ShadowSampleCount;
@@ -23,7 +21,7 @@ float rand(float3 co)
 
 float calcShadowFactor(PSInput input)
 {
-    float3 shadowCoord = calcShadowCoord(ShadowMapViewProj, input);
+    float3 shadowCoord = calcShadowCoord(input.lightPosition);
     
     float offsetScale    = ShadowMapFilterSize / ShadowMapResolution;
 

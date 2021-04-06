@@ -2,7 +2,7 @@
 
 #include "./common.h"
 
-class MeshRendererPCF : public agz::misc::uncopyable_t
+class MeshRendererPCSS : public agz::misc::uncopyable_t
 {
 public:
 
@@ -12,9 +12,13 @@ public:
 
     void setLight(const Light &light);
 
-    void setShadowMap(ComPtr<ID3D11ShaderResourceView> sm, const Mat4 &viewProj);
+    void setShadowMap(
+        ComPtr<ID3D11ShaderResourceView> sm,
+        const Mat4                      &viewProj,
+        float                            nearPlane,
+        float                            lightRadiusOnShadowMap);
 
-    void setFilter(float filterRadius, int sampleCount);
+    void setFilter(int blockSearchSampleCount, int PCFSampleCount);
 
     void begin();
 
@@ -30,16 +34,15 @@ private:
     {
         Mat4 world;
         Mat4 WVP;
+        Mat4 lightWVP;
     };
 
     struct PSShadowMapConst
     {
-        Mat4 lightViewProj;
-
-        float textureResolution;
-        float filterRadius;
-        int   sampleCount;
-        int   pad0;
+        int   shadowSampleCount;
+        int   blockSearchSampleCount;
+        float lightNearPlane;
+        float lightRadiusOnShadowMap;
     };
 
     ComPtr<ID3D11InputLayout> inputLayout_;
@@ -58,6 +61,7 @@ private:
     PSShadowMapConst                 psShadowMapConstData_ = {};
 
     ShaderResourceViewSlot<PS> *psShadowMapSlot_ = nullptr;
-    
+
+    Mat4 lightViewProj_;
     Mat4 viewProj_;
 };

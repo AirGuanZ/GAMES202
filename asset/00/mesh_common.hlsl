@@ -7,6 +7,7 @@ cbuffer VSTransform
 {
     float4x4 World;
     float4x4 WVP;
+    float4x4 LightWVP;
 }
 
 struct VSInput
@@ -18,14 +19,18 @@ struct VSInput
 struct VSOutput
 {
     float4 position      : SV_POSITION;
+    float4 lightPosition : LIGHT_POSITION;
     float3 worldPosition : POSITION;
     float3 worldNormal   : NORMAL;
 };
 
 VSOutput VSMain(VSInput input)
 {
+    float3 offseted_position = input.position + 0.02 * input.normal;
+
     VSOutput output;
     output.position      = mul(float4(input.position, 1), WVP);
+    output.lightPosition = mul(float4(offseted_position, 1), LightWVP);
     output.worldPosition = mul(float4(input.position, 1), World).xyz;
     output.worldNormal   = normalize(mul(float4(input.normal, 0), World).xyz);
     return output;
@@ -36,6 +41,7 @@ VSOutput VSMain(VSInput input)
 struct PSInput
 {
     float4 position      : SV_POSITION;
+    float4 lightPosition : LIGHT_POSITION;
     float3 worldPosition : POSITION;
     float3 worldNormal   : NORMAL;
 };
@@ -69,18 +75,17 @@ float3 calcLightFactor(PSInput input)
 
 float calcShadowFactor(PSInput input);
 
-float3 calcShadowCoord(float4x4 SMVP, PSInput input)
+float3 calcShadowCoord(float4 lightClipPos)
 {
-    float3 offseted_pos = input.worldPosition + 0.02 * input.worldNormal;
-    float4 lightClipPos = mul(float4(offseted_pos, 1), SMVP);
-    float2 lightNDCPos  = lightClipPos.xy / lightClipPos.w;
-    float2 shadowUV     = float2(0.5, -0.5) * lightNDCPos.xy + 0.5;
+    float2 lightNDCPos = lightClipPos.xy / lightClipPos.w;
+    float2 shadowUV    = float2(0.5, -0.5) * lightNDCPos.xy + 0.5;
     return float3(shadowUV, lightClipPos.z);
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
     input.worldNormal = normalize(input.worldNormal);
+
     float3 lightFactor  = calcLightFactor(input);
     float  shadowFactor = calcShadowFactor(input);
     float3 color        = shadowFactor * lightFactor + LightAmbient;

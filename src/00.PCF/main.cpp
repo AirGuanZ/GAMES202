@@ -4,11 +4,13 @@
 #include <common/application.h>
 #include <common/camera.h>
 
-#include "./mesh_renderer_hard.h"
-#include "./mesh_renderer_noshadow.h"
-#include "./mesh_renderer_pcf.h"
-#include "./mesh_renderer_pcss.h"
-#include "./shadow_map_renderer.h"
+#include "./blur.h"
+#include "./hard.h"
+#include "./none.h"
+#include "./pcf.h"
+#include "./pcss.h"
+#include "./sm.h"
+#include "./vsm.h"
 
 class ShadowMapApplication : public Application
 {
@@ -22,6 +24,7 @@ public:
         Hard,
         PCF,
         PCSS,
+        VSM,
     };
 
 protected:
@@ -47,6 +50,8 @@ private:
 
     void framePCSS(const Light &light, bool gui);
 
+    void frameVSM(const Light &light, bool gui);
+
     void updateCamera();
 
     Light getLight();
@@ -57,9 +62,11 @@ private:
 
     std::vector<Mesh> meshes_;
 
-    ShadowMapRenderer shadowMapRenderer_;
-
     ShadowAlgorithmType algoType_ = ShadowAlgorithmType::Hard;
+
+    // algos based on regular shadow map
+
+    ShadowMapRenderer shadowMapRenderer_;
 
     MeshRendererHardShadow hardShadow_;
     MeshRendererNoShadow   noShadow_;
@@ -73,6 +80,15 @@ private:
     int   PCSSBlockSearchSampleCount_ = 18;
     int   PCSSSampleCount_            = 27;
 
+    // vsm
+
+    VarianceShadowMapRenderer varianceShadowMapRenderer_;
+    GaussianBlur              gaussianBlur_;
+    MeshRendererVSM           VSM_;
+
+    int VSMBlurRadius_  = 5;
+    float VSMBlurSigma_ = 2;
+    
     bool  rotateLight_ = true;
     float lightAngle_  = 0;
 
@@ -81,7 +97,7 @@ private:
 
 void ShadowMapApplication::initialize()
 {
-    shadowMapRenderer_.initialize({ 2048, 2048 }, 2000, 1.6f);
+    shadowMapRenderer_.initialize({ 2048, 2048 });
 
     hardShadow_.initialize();
     noShadow_.initialize();
@@ -91,6 +107,11 @@ void ShadowMapApplication::initialize()
 
     PCSS_.initialize();
     PCSS_.setFilter(PCSSBlockSearchSampleCount_, PCSSSampleCount_);
+
+    varianceShadowMapRenderer_.initialize({ 2048, 2048 });
+    gaussianBlur_.initialize({ 2048, 2048 });
+    gaussianBlur_.setFilter(VSMBlurRadius_, VSMBlurSigma_);
+    VSM_.initialize();
 
     meshes_.push_back(loadMesh("./asset/202.obj"));
     meshes_.push_back(loadMesh("./asset/ground.obj"));
@@ -124,7 +145,7 @@ bool ShadowMapApplication::frame()
 
     updateCamera();
 
-    bool gui = ImGui::Begin("SM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    bool gui = ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     if(gui)
     {
         ImGui::Text("FPS: %d", fps_.fps());
@@ -136,7 +157,8 @@ bool ShadowMapApplication::frame()
             "None",
             "Hard",
             "PCF",
-            "PCSS"
+            "PCSS",
+            "VSM"
         };
         if(ImGui::BeginCombo("Type", algoNames[static_cast<int>(algoType_)]))
         {
@@ -165,6 +187,9 @@ bool ShadowMapApplication::frame()
         break;
     case ShadowAlgorithmType::PCSS:
         framePCSS(light, gui);
+        break;
+    case ShadowAlgorithmType::VSM:
+        frameVSM(light, gui);
         break;
     }
 
@@ -306,6 +331,41 @@ void ShadowMapApplication::framePCSS(const Light &light, bool gui)
     for(auto &mesh : meshes_)
         PCSS_.render(mesh.vertexBuffer, Mat4::identity());
     PCSS_.end();
+}
+
+void ShadowMapApplication::frameVSM(const Light &light, bool gui)
+{
+    if(gui)
+    {
+        if(ImGui::SliderInt("Blur Radius", &VSMBlurRadius_, 0, 15))
+            gaussianBlur_.setFilter(VSMBlurRadius_, VSMBlurSigma_);
+        if(ImGui::SliderFloat("Blur Sigma", &VSMBlurSigma_, 0.01f, 20))
+            gaussianBlur_.setFilter(VSMBlurRadius_, VSMBlurSigma_);
+    }
+
+    varianceShadowMapRenderer_.setLight(light);
+    varianceShadowMapRenderer_.begin();
+    for(auto &mesh : meshes_)
+        varianceShadowMapRenderer_.render(mesh.vertexBuffer, Mat4::identity());
+    varianceShadowMapRenderer_.end();
+
+    gaussianBlur_.blur(varianceShadowMapRenderer_.getSRV());
+
+    window_->useDefaultRTVAndDSV();
+    window_->useDefaultViewport();
+    window_->clearDefaultRenderTarget({ 0, 0, 0, 0 });
+    window_->clearDefaultDepth(1.0f);
+
+    VSM_.setCamera(camera_.getViewProj());
+    VSM_.setLight(light);
+    VSM_.setShadowMap(
+        gaussianBlur_.getOutput(),
+        varianceShadowMapRenderer_.getLightViewProj());
+
+    VSM_.begin();
+    for(auto &mesh : meshes_)
+        VSM_.render(mesh.vertexBuffer, Mat4::identity());
+    VSM_.end();
 }
 
 void ShadowMapApplication::updateCamera()

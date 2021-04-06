@@ -1,13 +1,13 @@
-#include "./mesh_renderer_pcf.h"
+#include "./pcss.h"
 
-void MeshRendererPCF::initialize()
+void MeshRendererPCSS::initialize()
 {
     // shader
 
     shader_.initializeStageFromFile<VS>(
-        "./asset/00/pcf.hlsl", nullptr, "VSMain");
+        "./asset/00/pcss.hlsl", nullptr, "VSMain");
     shader_.initializeStageFromFile<PS>(
-        "./asset/00/pcf.hlsl", nullptr, "PSMain");
+        "./asset/00/pcss.hlsl", nullptr, "PSMain");
 
     shaderRscs_ = shader_.createResourceManager();
 
@@ -29,8 +29,10 @@ void MeshRendererPCF::initialize()
     psShadowMapConst_.initialize();
     psShadowMapConstSlot_->setBuffer(psShadowMapConst_);
 
-    psShadowMapConstData_.sampleCount  = 1;
-    psShadowMapConstData_.filterRadius = 1;
+    psShadowMapConstData_.lightNearPlane         = 1;
+    psShadowMapConstData_.lightRadiusOnShadowMap = 0.01f;
+    psShadowMapConstData_.blockSearchSampleCount = 16;
+    psShadowMapConstData_.shadowSampleCount      = 20;
 
     // shadow map & sampler
 
@@ -40,13 +42,13 @@ void MeshRendererPCF::initialize()
         shaderRscs_.getSamplerSlot<PS>("ShadowMapSampler");
 
     D3D11_SAMPLER_DESC samplerDesc;
-    samplerDesc.Filter         = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+    samplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_POINT;
     samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_BORDER;
     samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_BORDER;
     samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_BORDER;
     samplerDesc.MipLODBias     = 0;
     samplerDesc.MaxAnisotropy  = 1;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     samplerDesc.BorderColor[0] = 1;
     samplerDesc.BorderColor[1] = 1;
     samplerDesc.BorderColor[2] = 1;
@@ -74,24 +76,28 @@ void MeshRendererPCF::initialize()
     inputLayout_ = InputLayoutBuilder(inputElems).build(shader_);
 }
 
-void MeshRendererPCF::setCamera(const Mat4 &viewProj)
+void MeshRendererPCSS::setCamera(const Mat4 &viewProj)
 {
     viewProj_ = viewProj;
 }
 
-void MeshRendererPCF::setLight(const Light &light)
+void MeshRendererPCSS::setLight(const Light &light)
 {
     psLight_.update(light);
 }
 
-void MeshRendererPCF::setFilter(float filterRadius, int sampleCount)
+void MeshRendererPCSS::setFilter(
+    int blockSearchSampleCount, int PCFSampleCount)
 {
-    psShadowMapConstData_.filterRadius = filterRadius;
-    psShadowMapConstData_.sampleCount  = sampleCount;
+    psShadowMapConstData_.blockSearchSampleCount = blockSearchSampleCount;
+    psShadowMapConstData_.shadowSampleCount      = PCFSampleCount;
 }
 
-void MeshRendererPCF::setShadowMap(
-    ComPtr<ID3D11ShaderResourceView> sm, const Mat4 &viewProj)
+void MeshRendererPCSS::setShadowMap(
+    ComPtr<ID3D11ShaderResourceView> sm,
+    const Mat4                      &viewProj,
+    float                            nearPlane,
+    float                            lightRadiusOnShadowMap)
 {
     ComPtr<ID3D11Resource> rsc;
     sm->GetResource(rsc.GetAddressOf());
@@ -102,13 +108,15 @@ void MeshRendererPCF::setShadowMap(
     D3D11_TEXTURE2D_DESC desc;
     tex->GetDesc(&desc);
 
-    psShadowMapConstData_.textureResolution = static_cast<float>(desc.Width);
-    psShadowMapConstData_.lightViewProj     = viewProj;
+    lightViewProj_ = viewProj;
 
+    psShadowMapConstData_.lightNearPlane         = nearPlane;
+    psShadowMapConstData_.lightRadiusOnShadowMap = lightRadiusOnShadowMap;
+    
     psShadowMapSlot_->setShaderResourceView(std::move(sm));
 }
 
-void MeshRendererPCF::begin()
+void MeshRendererPCSS::begin()
 {
     psShadowMapConst_.update({ psShadowMapConstData_ });
 
@@ -118,17 +126,18 @@ void MeshRendererPCF::begin()
     deviceContext.setPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-void MeshRendererPCF::end()
+void MeshRendererPCSS::end()
 {
     deviceContext.setInputLayout(nullptr);
     shaderRscs_.unbind();
     shader_.unbind();
 }
 
-void MeshRendererPCF::render(
+void MeshRendererPCSS::render(
     const VertexBuffer<MeshVertex> &vertexBuffer, const Mat4 &world)
 {
-    vsTransform_.update({ world, world * viewProj_ });
+    vsTransform_.update(
+        { world, world * viewProj_, world * lightViewProj_ });
 
     vertexBuffer.bind(0);
     deviceContext->DrawInstanced(vertexBuffer.getVertexCount(), 1, 0, 0);

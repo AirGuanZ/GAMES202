@@ -1,4 +1,4 @@
-#include "./mesh_renderer_hard.h"
+#include "./hard.h"
 
 void MeshRendererHardShadow::initialize()
 {
@@ -22,12 +22,6 @@ void MeshRendererHardShadow::initialize()
     psLightSlot_ = shaderRscs_.getConstantBufferSlot<PS>("PSLight");
     psLight_.initialize();
     psLightSlot_->setBuffer(psLight_);
-
-    // ps shadow map
-
-    psShadowMapConstSlot_ = shaderRscs_.getConstantBufferSlot<PS>("PSShadowMap");
-    psShadowMapConst_.initialize();
-    psShadowMapConstSlot_->setBuffer(psShadowMapConst_);
 
     // shadow map & sampler
 
@@ -85,7 +79,7 @@ void MeshRendererHardShadow::setShadowMap(
     ComPtr<ID3D11ShaderResourceView> sm, const Mat4 &viewProj)
 {
     psShadowMapSlot_->setShaderResourceView(std::move(sm));
-    psShadowMapConst_.update({ viewProj });
+    lightViewProj_ = viewProj;
 }
 
 void MeshRendererHardShadow::begin()
@@ -106,8 +100,8 @@ void MeshRendererHardShadow::end()
 void MeshRendererHardShadow::render(
     const VertexBuffer<MeshVertex> &vertexBuffer, const Mat4 &world)
 {
-    vsTransform_.update({ world, world * viewProj_ });
-
+    vsTransform_.update(
+        { world, world * viewProj_, world * lightViewProj_ });
     vertexBuffer.bind(0);
     deviceContext->DrawInstanced(vertexBuffer.getVertexCount(), 1, 0, 0);
     vertexBuffer.unbind(0);

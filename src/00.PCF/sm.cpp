@@ -1,7 +1,6 @@
-#include "./shadow_map_renderer.h"
+#include "./sm.h"
 
-void ShadowMapRenderer::initialize(
-    const Int2 &resolution, int depthBias, float depthSlopeBias)
+void ShadowMapRenderer::initialize(const Int2 &resolution)
 {
     // shader
 
@@ -15,22 +14,6 @@ void ShadowMapRenderer::initialize(
     vsTransformSlot_ = shaderRscs_.getConstantBufferSlot<VS>("VSTransform");
     vsTransform_.initialize();
     vsTransformSlot_->setBuffer(vsTransform_);
-
-    // rasterizer state
-
-    D3D11_RASTERIZER_DESC rasterDesc;
-    rasterDesc.FillMode              = D3D11_FILL_SOLID;
-    rasterDesc.CullMode              = D3D11_CULL_BACK;
-    rasterDesc.FrontCounterClockwise = false;
-    rasterDesc.DepthBias             = depthBias;
-    rasterDesc.DepthBiasClamp        = 0;
-    rasterDesc.SlopeScaledDepthBias  = depthSlopeBias;
-    rasterDesc.DepthClipEnable       = true;
-    rasterDesc.ScissorEnable         = false;
-    rasterDesc.MultisampleEnable     = false;
-    rasterDesc.AntialiasedLineEnable = false;
-
-    rasterState_ = device.createRasterizerState(rasterDesc);
 
     // input layout
 
@@ -86,7 +69,6 @@ void ShadowMapRenderer::begin()
     shaderRscs_.bind();
     deviceContext.setInputLayout(inputLayout_.Get());
     deviceContext.setPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    deviceContext->RSSetState(rasterState_.Get());
 
     D3D11_VIEWPORT viewport = {
         0.0f, 0.0f,
@@ -99,7 +81,6 @@ void ShadowMapRenderer::begin()
 
 void ShadowMapRenderer::end()
 {
-    deviceContext->RSSetState(nullptr);
     deviceContext.setInputLayout(nullptr);
     shaderRscs_.unbind();
     shader_.unbind();
@@ -111,7 +92,6 @@ void ShadowMapRenderer::render(
     const Mat4                     &world)
 {
     vsTransform_.update({ world * lightViewProj_ });
-
     vertexBuffer.bind(0);
     deviceContext->DrawInstanced(vertexBuffer.getVertexCount(), 1, 0, 0);
     vertexBuffer.unbind(0);

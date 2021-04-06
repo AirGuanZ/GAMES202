@@ -8,7 +8,7 @@ class ShadowMapRenderer : public agz::misc::uncopyable_t
 {
 public:
 
-    void initialize(const Int2 &resolution, int depthBias, float depthSlopeBias);
+    void initialize(const Int2 &resolution);
 
     ComPtr<ID3D11ShaderResourceView> getSRV() const;
 
@@ -34,8 +34,6 @@ private:
     {
         Mat4 WVP;
     };
-
-    ComPtr<ID3D11RasterizerState> rasterState_;
 
     ComPtr<ID3D11InputLayout> inputLayout_;
     RenderTarget              renderTarget_;

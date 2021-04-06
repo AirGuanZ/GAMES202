@@ -4,8 +4,6 @@
 
 cbuffer PSShadowMap
 {
-    float4x4 ShadowMapViewProj;
-    
     int   ShadowSampleCount;
     int   BlockSearchSampleCount;
     float LightNearPlane;
@@ -53,7 +51,7 @@ float findBlockerDepth(float2 shadowUV, float zReceiver, float rnd)
 
 float calcShadowFactor(PSInput input)
 {
-    float3 shadowCoord = calcShadowCoord(ShadowMapViewProj, input);
+    float3 shadowCoord = calcShadowCoord(input.lightPosition);
     
     float zBlocker = findBlockerDepth(
         shadowCoord.xy, shadowCoord.z, rand(input.worldPosition + 1));

@@ -1,4 +1,4 @@
-#include "./mesh_renderer_noshadow.h"
+#include "./none.h"
 
 void MeshRendererNoShadow::initialize()
 {
