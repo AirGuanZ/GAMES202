@@ -11,7 +11,7 @@ float calcShadowFactor(PSInput input)
         ShadowMap.SampleLevel(ShadowMapSampler, shadowCoord.xy, 0).xy;
     
     float miu    = smValue.x;
-    float sigma2 = max(abs(smValue.y - miu * miu), 0.01);
+    float sigma2 = smValue.y - miu * miu;
 
     float zDiff = shadowCoord.z - miu;
     float slf   = zDiff <= 0 ? 1 : 0;

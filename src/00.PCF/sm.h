@@ -1,7 +1,5 @@
 #pragma once
 
-#include <common/common.h>
-
 #include "./common.h"
 
 class ShadowMapRenderer : public agz::misc::uncopyable_t

@@ -2,7 +2,7 @@
 
 #include "./common.h"
 
-class VarianceShadowMapRenderer : public agz::misc::uncopyable_t
+class ExponentialShadowMapRenderer : public agz::misc::uncopyable_t
 {
 public:
 
@@ -11,6 +11,8 @@ public:
     ComPtr<ID3D11ShaderResourceView> getSRV() const;
 
     const Mat4 &getLightViewProj() const;
+
+    void setC(float c);
     
     void setLight(const Light &light);
 
@@ -31,6 +33,12 @@ private:
         Mat4 WVP;
     };
 
+    struct PSParam
+    {
+        float c       = 80;
+        float pad0[3] = {};
+    };
+
     ComPtr<ID3D11InputLayout> inputLayout_;
     RenderTarget              renderTarget_;
 
@@ -39,15 +47,20 @@ private:
     
     ConstantBuffer<VSTransform> vsTransform_;
 
+    PSParam                 psParamData_;
+    ConstantBuffer<PSParam> psParam_;
+
     Light light_ = {};
     Mat4  lightViewProj_;
 };
 
-class MeshRendererVSM : public agz::misc::uncopyable_t
+class MeshRendererESM : public agz::misc::uncopyable_t
 {
 public:
 
     void initialize();
+
+    void setC(float c);
 
     void setCamera(const Mat4 &viewProj);
 
@@ -66,12 +79,18 @@ public:
         const Mat4                     &world);
 
 private:
-
+    
     struct VSTransform
     {
         Mat4 world;
         Mat4 WVP;
         Mat4 lightWVP;
+    };
+
+    struct PSParam
+    {
+        float c       = 80;
+        float pad0[3] = {};
     };
 
     Shader<VS, PS>         shader_;
@@ -81,6 +100,9 @@ private:
 
     ConstantBuffer<VSTransform> vsTransform_;
     ConstantBuffer<Light>       psLight_;
+
+    PSParam                 psParamData_;
+    ConstantBuffer<PSParam> psParam_;
 
     ShaderResourceViewSlot<PS> *psShadowMapSlot_ = nullptr;
 
