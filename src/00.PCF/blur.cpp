@@ -86,10 +86,7 @@ void GaussianBlur::setFilter(int radius, float sigma)
 {
     radius_ = radius;
     sigma_  = sigma;
-}
 
-void GaussianBlur::blur(ComPtr<ID3D11ShaderResourceView> srv)
-{
     auto weights = generateBlurWeights(radius_, sigma_);
 
     BlurSetting blurSetting;
@@ -98,7 +95,10 @@ void GaussianBlur::blur(ComPtr<ID3D11ShaderResourceView> srv)
         blurSetting.weights[i] = weights[i];
 
     blurSetting_.update(blurSetting);
+}
 
+void GaussianBlur::blur(ComPtr<ID3D11ShaderResourceView> srv)
+{
     // hori
 
     horiInputSlot_->setShaderResourceView(srv);
@@ -107,7 +107,7 @@ void GaussianBlur::blur(ComPtr<ID3D11ShaderResourceView> srv)
     horiShader_.bind();
     horiShaderRscs_.bind();
 
-    const int groupXCount = agz::upalign_to(resolution_.x, 64) / 64;
+    const int groupXCount = agz::upalign_to(resolution_.x, 256) / 256;
     deviceContext.dispatch(groupXCount, resolution_.y);
 
     horiShaderRscs_.unbind();
@@ -121,7 +121,7 @@ void GaussianBlur::blur(ComPtr<ID3D11ShaderResourceView> srv)
     vertShader_.bind();
     vertShaderRscs_.bind();
 
-    const int groupYCount = agz::upalign_to(resolution_.y, 64) / 64;
+    const int groupYCount = agz::upalign_to(resolution_.y, 256) / 256;
     deviceContext.dispatch(resolution_.x, groupYCount);
 
     vertShaderRscs_.unbind();

@@ -7,7 +7,7 @@ cbuffer PSShadowMap
     int   ShadowSampleCount;
     int   BlockSearchSampleCount;
     float LightNearPlane;
-    float LightRadiusOnShadowMap;
+    float LightRadius;
 }
 
 SamplerState ShadowMapSampler;
@@ -22,7 +22,8 @@ float rand(float3 co)
 float findBlockerDepth(float2 shadowUV, float zReceiver, float rnd)
 {
     float searchRadius =
-        LightRadiusOnShadowMap * (zReceiver - LightNearPlane) / zReceiver;
+        LightRadius * (zReceiver - LightNearPlane) / zReceiver *
+        LightNearPlane / zReceiver;
 
     float poissonAngleStep  = PI2 * 10 / float(BlockSearchSampleCount);
     float poissonAngle      = rnd * PI2;
@@ -59,7 +60,8 @@ float calcShadowFactor(PSInput input)
         return 1;
 
     float PCFRadiusRatio = (shadowCoord.z - zBlocker) / zBlocker;
-    float PCFRadius = LightRadiusOnShadowMap * PCFRadiusRatio;
+    float PCFRadius = LightRadius * PCFRadiusRatio
+                    * LightNearPlane / shadowCoord.z;
 
     float poissonAngleStep  = PI2 * 10 / float(ShadowSampleCount);
     float poissonAngle      = rand(input.worldPosition) * PI2;

@@ -38,7 +38,7 @@ Texture2D<float4>   InputImage;
 RWTexture2D<float4> OutputImage;
 
 #define MAX_RADIUS 15
-#define GROUP_SIZE 64
+#define GROUP_SIZE 256
 
 groupshared float4 ImageCache[GROUP_SIZE + 2 * MAX_RADIUS];
 

@@ -80,7 +80,7 @@ private:
     int   PCFSampleCount_  = 20;
 
     MeshRendererPCSS PCSS_;
-    float PCSSLightRadiusOnShadowMap_ = 0.04f;
+    float PCSSLightRadius_            = 0.1f;
     int   PCSSBlockSearchSampleCount_ = 18;
     int   PCSSSampleCount_            = 27;
 
@@ -122,13 +122,13 @@ void ShadowMapApplication::initialize()
     PCSS_.initialize();
     PCSS_.setFilter(PCSSBlockSearchSampleCount_, PCSSSampleCount_);
 
-    VSMSM_.initialize({ 2048, 2048 });
-    VSMBlur_.initialize({ 2048, 2048 });
+    VSMSM_.initialize({ 1024, 1024 });
+    VSMBlur_.initialize({ 1024, 1024 });
     VSMBlur_.setFilter(VSMBlurRadius_, VSMBlurSigma_);
     VSM_.initialize();
 
-    ESMSM_.initialize({ 2048, 2048 });
-    ESMBlur_.initialize({ 2048, 2048 });
+    ESMSM_.initialize({ 1024, 1024 });
+    ESMBlur_.initialize({ 1024, 1024 });
     ESM_.initialize();
 
     ESMSM_.setC(ESMShadowC_);
@@ -152,6 +152,8 @@ void ShadowMapApplication::initialize()
 
 bool ShadowMapApplication::frame()
 {
+    // window events
+
     window_->doEvents();
     window_->newImGuiFrame();
 
@@ -165,11 +167,17 @@ bool ShadowMapApplication::frame()
             !mouse_->isLocked(), mouse_->getLockX(), mouse_->getLockY());
     }
 
+    // camera
+
     updateCamera();
+
+    // gui
 
     bool gui = ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     if(gui)
     {
+        ImGui::Text("Press LCtrl to show/hide cursor");
+        ImGui::Text("Use W/A/S/D/Space/LShift to move");
         ImGui::Text("FPS: %d", fps_.fps());
 
         ImGui::Checkbox("Rotate Light", &rotateLight_);
@@ -194,6 +202,8 @@ bool ShadowMapApplication::frame()
             ImGui::EndCombo();
         }
     }
+
+    // render
 
     const Light light = getLight();
 
@@ -314,10 +324,10 @@ void ShadowMapApplication::framePCSS(const Light &light, bool gui)
 {
     if(gui)
     {
-        if(ImGui::InputFloat("Light Radius UV", &PCSSLightRadiusOnShadowMap_))
+        if(ImGui::InputFloat("Light Radius", &PCSSLightRadius_))
         {
-            PCSSLightRadiusOnShadowMap_ =
-                (std::max)(PCSSLightRadiusOnShadowMap_, 0.0f);
+            PCSSLightRadius_ =
+                (std::max)(PCSSLightRadius_, 0.0f);
         }
 
         if(ImGui::InputInt("Blocker Sample Count", &PCSSBlockSearchSampleCount_))
@@ -351,7 +361,7 @@ void ShadowMapApplication::framePCSS(const Light &light, bool gui)
         shadowMapRenderer_.getSRV(),
         shadowMapRenderer_.getLightViewProj(),
         shadowMapRenderer_.getNearPlane(),
-        PCSSLightRadiusOnShadowMap_);
+        PCSSLightRadius_);
 
     PCSS_.begin();
     for(auto &mesh : meshes_)
