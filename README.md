@@ -14,8 +14,16 @@ cmake ..
 
 进度：
 
-- [x] 作业1: PCSS阴影
-- [x] 作业1扩展：VSM和ESM
-- [ ] 网格物体的SDF生成
+- [x] 作业1：PCSS阴影
+  * PCF
+  * PCSS
+  * VSM
+  * ESM
+- [x] 作业2：基于球谐函数的预计算辐射传输
+  * 无阴影
+  * 有阴影
+  * 有间接光照
 
 ![](./gallery/00.ShadowMap.png)
+
+![](./gallery/01.SH-PRT.png)

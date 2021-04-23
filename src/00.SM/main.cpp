@@ -19,16 +19,6 @@ public:
 
     using Application::Application;
 
-    enum class ShadowAlgorithmType : int
-    {
-        NoShadow,
-        Hard,
-        PCF,
-        PCSS,
-        VSM,
-        ESM,
-    };
-
 protected:
 
     void initialize() override;
@@ -38,6 +28,16 @@ protected:
     void destroy() override;
 
 private:
+
+    enum class ShadowAlgorithmType : int
+    {
+        NoShadow,
+        Hard,
+        PCF,
+        PCSS,
+        VSM,
+        ESM,
+    };
 
     struct Mesh
     {

@@ -61,9 +61,8 @@ float3 calcLightFactor(PSInput input)
     float3 position   = input.worldPosition;
     float3 lightToPos = position - LightPosition;
     float distance2   = dot(lightToPos, lightToPos);
+    float3 attenFlux  = LightIncidence / distance2;
     lightToPos        = normalize(lightToPos);
-
-    float3 attenFlux = LightIncidence / distance2;
 
     float cosTheta = dot(lightToPos, LightDirection);
     float fadeFactor =
@@ -84,8 +83,7 @@ float3 calcShadowCoord(float4 lightClipPos)
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    input.worldNormal = normalize(input.worldNormal);
-
+    input.worldNormal   = normalize(input.worldNormal);
     float3 lightFactor  = calcLightFactor(input);
     float  shadowFactor = calcShadowFactor(input);
     float3 color        = shadowFactor * lightFactor + LightAmbient;
