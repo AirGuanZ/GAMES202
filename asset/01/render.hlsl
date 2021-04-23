@@ -15,7 +15,7 @@ Buffer<float> VertexSHCoefs;
 struct VSInput
 {
     float3 position : POSITION;
-    uint vertexID   : ID;
+    uint   vertexID : SV_VertexID;
 };
 
 struct VSOutput

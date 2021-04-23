@@ -17,13 +17,7 @@ void Renderer::initialize()
     const D3D11_INPUT_ELEMENT_DESC inputElems[] = {
         {
             "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-            0, offsetof(Vertex, position),
-            D3D11_INPUT_PER_VERTEX_DATA, 0
-        },
-        {
-            "ID", 0, DXGI_FORMAT_R32_UINT,
-            0, offsetof(Vertex, id),
-            D3D11_INPUT_PER_VERTEX_DATA, 0
+            0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0
         }
     };
 
@@ -46,7 +40,7 @@ void Renderer::setSH(int SHCount)
 }
 
 void Renderer::setVertices(
-    const Vertex *vertices,
+    const Float3 *vertices,
     const float  *vertexSHCoefs,
     int           vertexCount)
 {

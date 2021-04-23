@@ -6,18 +6,12 @@ class Renderer : public agz::misc::uncopyable_t
 {
 public:
 
-    struct Vertex
-    {
-        Float3   position;
-        uint32_t id;
-    };
-
     void initialize();
 
     void setSH(int SHCount);
 
     void setVertices(
-        const Vertex *vertices,
+        const Float3 *vertices,
         const float  *vertexSHCoefs,
         int           vertexCount);
 
@@ -45,7 +39,7 @@ private:
     Shader<VS, PS>::RscMgr shaderRscs_;
 
     ComPtr<ID3D11InputLayout> inputLayout_;
-    VertexBuffer<Vertex>      vertexBuffer_;
+    VertexBuffer<Float3>      vertexBuffer_;
     
     ShaderResourceViewSlot<VS> *vertexSHCoefsSlot_ = nullptr;
 

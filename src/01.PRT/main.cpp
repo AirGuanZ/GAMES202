@@ -31,7 +31,7 @@ private:
 
     void updateCamera();
 
-    void setMaxOrder(int maxOrder);
+    void updateRendererSettings();
 
     std::string getCacheFilename(const std::string &filename) const;
 
@@ -150,7 +150,7 @@ bool PRTApplication::frame()
         }
 
         if(ImGui::SliderInt("Max Order", &maxSHOrder_, 0, 2))
-            setMaxOrder(maxSHOrder_);
+            updateRendererSettings();
 
         if(ImGui::Button("Reload Mesh"))
         {
@@ -226,18 +226,16 @@ void PRTApplication::updateCamera()
     camera_.recalculateMatrics();
 }
 
-void PRTApplication::setMaxOrder(int maxOrder)
+void PRTApplication::updateRendererSettings()
 {
     assert(0 <= maxOrder && maxOrder <= MAX_SH_ORDER);
-    maxSHOrder_ = maxOrder;
-
-    const int SHCount = agz::math::sqr(maxOrder + 1);
+    
+    const int SHCount = agz::math::sqr(maxSHOrder_ + 1);
     renderer_.setSH(SHCount);
     
     if(!fullMeshSHCoefs_.empty())
     {
         std::vector<float> meshSHCoefs(SHCount * vertices_.size());
-        std::vector<Renderer::Vertex> renderVertices(vertices_.size());
 
         for(size_t vi = 0; vi < vertices_.size(); ++vi)
         {
@@ -246,13 +244,10 @@ void PRTApplication::setMaxOrder(int maxOrder)
 
             for(int ci = 0; ci < SHCount; ++ci)
                 meshSHCoefs[lhsBase + ci] = fullMeshSHCoefs_[rhsBase + ci];
-
-            renderVertices[vi].position = vertices_[vi];
-            renderVertices[vi].id       = static_cast<uint32_t>(vi);
         }
         
         renderer_.setVertices(
-            renderVertices.data(), meshSHCoefs.data(),
+            vertices_.data(), meshSHCoefs.data(),
             static_cast<int>(vertices_.size()));
     }
 
@@ -308,7 +303,7 @@ void PRTApplication::loadMesh(const std::string &filename)
     }
 
     fullMeshSHCoefs_ = std::move(meshCoefs);
-    setMaxOrder(maxSHOrder_);
+    updateRendererSettings();
 }
 
 void PRTApplication::loadEnv(const std::string &filename)
