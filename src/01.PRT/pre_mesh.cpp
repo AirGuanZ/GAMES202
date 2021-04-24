@@ -85,6 +85,9 @@ namespace
 
         for(int depth = 1; depth <= maxDepth; ++depth)
         {
+            if(!agz::math::is_finite(coef))
+                return;
+
             BVH::Intersection inct;
             if(!bvh.findIntersection(ray, &inct))
             {
@@ -111,8 +114,6 @@ namespace
             ray.o = inct.position + EPS * nor;
 
             coef *= brdf * abs(cos(ray.d, nor)) / pdf_dir;
-            if(!agz::math::is_finite(coef))
-                return;
         }
     }
     

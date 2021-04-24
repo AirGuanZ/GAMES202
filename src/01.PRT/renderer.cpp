@@ -67,13 +67,13 @@ void Renderer::setVertices(
     vertexSHCoefsSlot_->setShaderResourceView(vertexSHCoefSRV);
 }
 
-void Renderer::setLight(const float *coefs)
+void Renderer::setLight(const Float3 *coefs)
 {
-    for(int i = 0, j = 0; i < vsEnvSHData_.count; ++i, j += 3)
+    for(int i = 0; i < vsEnvSHData_.count; ++i)
     {
-        vsEnvSHData_.envSH[i].x = coefs[j];
-        vsEnvSHData_.envSH[i].y = coefs[j + 1];
-        vsEnvSHData_.envSH[i].z = coefs[j + 2];
+        vsEnvSHData_.envSH[i].x = coefs[i][0];
+        vsEnvSHData_.envSH[i].y = coefs[i][1];
+        vsEnvSHData_.envSH[i].z = coefs[i][2];
     }
 }
 

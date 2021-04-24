@@ -24,8 +24,11 @@ protected:
 
 private:
 
-    static constexpr int MAX_SH_ORDER  = 2;
-    static constexpr int FULL_SH_COUNT = 9;
+    static constexpr int MAX_SH_ORDER  = 4;
+    static constexpr int FULL_SH_COUNT = (MAX_SH_ORDER + 1) * (MAX_SH_ORDER + 1);
+
+    static constexpr int SAMPLES_PER_VERTEX = 1024;
+    static constexpr int SAMPLES_FOR_LIGHT  = 1000000;
 
     static constexpr float VERTEX_ALBEDO = 0.8f;
 
@@ -47,10 +50,10 @@ private:
         size_t              vertexCount,
         const std::string  &cacheFilename) const;
 
-    std::vector<float> loadCachedLightCoefs(
-        const std::string &cachedFilename) const;
+    std::vector<Float3> loadCachedLightCoefs(
+        const std::string &cacheFilename) const;
 
-    std::vector<float> generateLightCoefs(
+    std::vector<Float3> generateLightCoefs(
         const agz::texture::texture2d_t<Float3> &env,
         const std::string                       &cacheFilename) const;
 
@@ -62,7 +65,10 @@ private:
     std::string meshFilename_;
     std::string envFilename_;
 
-    int maxSHOrder_ = 2;
+    int maxSHOrder_ = 4;
+
+    bool  autoRotate_  = true;
+    float rotateAngle_ = 0;
 
     LightingMode lightingMode_ = LightingMode::NoShadow;
 
@@ -71,7 +77,7 @@ private:
 
     std::vector<Float3> vertices_;
     std::vector<float>  fullMeshSHCoefs_;
-    std::vector<float>  envSHCoefs_;
+    std::vector<Float3> envSHCoefs_;
 
     agz::time::fps_counter_t fps_;
 };
@@ -82,10 +88,10 @@ void PRTApplication::initialize()
     renderer_.setSH(agz::math::sqr(maxSHOrder_ + 1));
 
     loadMesh("./asset/202.obj");
-    loadEnv("./asset/01/gray_pier_4k.hdr");
+    loadEnv("./asset/01/small_hangar_01_4k.hdr");
 
     meshFilename_ = "./asset/202.obj";
-    envFilename_ = "./asset/01/gray_pier_4k.hdr";
+    envFilename_ = "./asset/01/small_hangar_01_4k.hdr";
 
     camera_.setPosition({ 0, 2, 3 });
     camera_.setDirection(-3.14159f * 0.5f, 0);
@@ -149,7 +155,7 @@ bool PRTApplication::frame()
                 loadMesh(meshFilename_);
         }
 
-        if(ImGui::SliderInt("Max Order", &maxSHOrder_, 0, 2))
+        if(ImGui::SliderInt("Max Order", &maxSHOrder_, 0, 4))
             updateRendererSettings();
 
         if(ImGui::Button("Reload Mesh"))
@@ -160,14 +166,27 @@ bool PRTApplication::frame()
 
         ImGui::SameLine();
 
-        if(ImGui::Button("Reload Rnv"))
+        if(ImGui::Button("Reload Light"))
         {
             envFileBrowser_.SetTitle("Select Env");
             envFileBrowser_.SetTypeFilters({ ".hdr", ".HDR" });
             envFileBrowser_.Open();
         }
+
+        ImGui::Checkbox("Rotate Light", &autoRotate_);
+
+        if(ImGui::SliderFloat("Light Angle", &rotateAngle_, 0, 360))
+            updateRendererSettings();
     }
     ImGui::End();
+
+    if(autoRotate_)
+    {
+        rotateAngle_ += 1;
+        if(rotateAngle_ > 360)
+            rotateAngle_ -= 360;
+        updateRendererSettings();
+    }
 
     meshFileBrowser_.Display();
     envFileBrowser_.Display();
@@ -228,7 +247,7 @@ void PRTApplication::updateCamera()
 
 void PRTApplication::updateRendererSettings()
 {
-    assert(0 <= maxOrder && maxOrder <= MAX_SH_ORDER);
+    assert(0 <= maxSHOrder_ && maxSHOrder_ <= MAX_SH_ORDER);
     
     const int SHCount = agz::math::sqr(maxSHOrder_ + 1);
     renderer_.setSH(SHCount);
@@ -245,14 +264,22 @@ void PRTApplication::updateRendererSettings()
             for(int ci = 0; ci < SHCount; ++ci)
                 meshSHCoefs[lhsBase + ci] = fullMeshSHCoefs_[rhsBase + ci];
         }
-        
+
         renderer_.setVertices(
             vertices_.data(), meshSHCoefs.data(),
             static_cast<int>(vertices_.size()));
     }
 
     if(!envSHCoefs_.empty())
-        renderer_.setLight(envSHCoefs_.data());
+    {
+        std::vector<Float3> rotatedCoefs = envSHCoefs_;
+
+        rotateEnvSHCoefs(
+            agz::math::mat3f_c::rotate_y(agz::math::deg2rad(rotateAngle_)),
+            rotatedCoefs);
+
+        renderer_.setLight(rotatedCoefs.data());
+    }
 }
 
 std::string PRTApplication::getCacheFilename(const std::string &filename) const
@@ -316,17 +343,14 @@ void PRTApplication::loadEnv(const std::string &filename)
         auto data = agz::img::load_rgb_from_hdr_file(filename).map(
             [](const agz::math::color3f &c)
         {
-            return Float3(
-                std::pow(c.r, 2.2f),
-                std::pow(c.g, 2.2f),
-                std::pow(c.b, 2.2f));
+            return Float3(c.r, c.g, c.b);
         });
         auto env = agz::texture::texture2d_t<Float3>(std::move(data));
         result = generateLightCoefs(env, cacheFilename);
     }
 
     envSHCoefs_ = result;
-    renderer_.setLight(envSHCoefs_.data());
+    updateRendererSettings();
 }
 
 std::vector<float> PRTApplication::loadCachedMeshCoefs(
@@ -353,7 +377,7 @@ std::vector<float> PRTApplication::generateMeshCoefs(
 {
     auto result = computeVertexSHCoefs(
         vertices, static_cast<int>(vertexCount),
-        VERTEX_ALBEDO, MAX_SH_ORDER, 1024, lightingMode_);
+        VERTEX_ALBEDO, MAX_SH_ORDER, SAMPLES_PER_VERTEX, lightingMode_);
 
     agz::file::create_directory_for_file(cacheFilename);
     agz::file::write_raw_file(
@@ -362,40 +386,32 @@ std::vector<float> PRTApplication::generateMeshCoefs(
     return result;
 }
 
-std::vector<float> PRTApplication::loadCachedLightCoefs(
+std::vector<Float3> PRTApplication::loadCachedLightCoefs(
     const std::string &cacheFilename) const
 {
     if(!std::filesystem::exists(cacheFilename))
         return {};
 
     auto bytes = agz::file::read_raw_file(cacheFilename);
-    const size_t size = sizeof(float) * 3 * FULL_SH_COUNT;
+    const size_t size = sizeof(Float3) * FULL_SH_COUNT;
     if(bytes.size() < size)
         return {};
 
-    std::vector<float> result(FULL_SH_COUNT * 3);
+    std::vector<Float3> result(FULL_SH_COUNT);
     std::memcpy(result.data(), bytes.data(), size);
 
     return result;
 }
 
-std::vector<float> PRTApplication::generateLightCoefs(
+std::vector<Float3> PRTApplication::generateLightCoefs(
     const agz::texture::texture2d_t<Float3> &env,
     const std::string                       &cacheFilename) const
 {
-    auto t_result = computeEnvSHCoefs(env, MAX_SH_ORDER, 100000);
+    auto result = computeEnvSHCoefs(env, MAX_SH_ORDER, SAMPLES_FOR_LIGHT);
 
     agz::file::create_directory_for_file(cacheFilename);
     agz::file::write_raw_file(
-        cacheFilename, t_result.data(), t_result.size() * sizeof(Float3));
-
-    std::vector<float> result;
-    for(auto &f : t_result)
-    {
-        result.push_back(f.x);
-        result.push_back(f.y);
-        result.push_back(f.z);
-    }
+        cacheFilename, result.data(), result.size() * sizeof(Float3));
 
     return result;
 }

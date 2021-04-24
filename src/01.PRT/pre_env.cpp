@@ -21,6 +21,25 @@ namespace
             env.width(), env.height());
     }
 
+    void rotateEnvSHCoefs(
+        const agz::math::mat3f_c &rot, int order, float *coefs)
+    {
+        using FT = decltype(
+            &agz::math::spherical_harmonics::rotate_sh_coefs<0, float>);
+
+        static const FT rot_funcs[] =
+        {
+            &agz::math::spherical_harmonics::rotate_sh_coefs<0, float>,
+            &agz::math::spherical_harmonics::rotate_sh_coefs<1, float>,
+            &agz::math::spherical_harmonics::rotate_sh_coefs<2, float>,
+            &agz::math::spherical_harmonics::rotate_sh_coefs<3, float>,
+            &agz::math::spherical_harmonics::rotate_sh_coefs<4, float>,
+        };
+
+        assert(order < agz::array_size<int>(rot_funcs));
+        rot_funcs[order](rot, coefs);
+    }
+
 } // namespace anonymous
 
 std::vector<Float3> computeEnvSHCoefs(
@@ -51,4 +70,32 @@ std::vector<Float3> computeEnvSHCoefs(
         s *= invNumSamples;
 
     return result;
+}
+
+void rotateEnvSHCoefs(
+    const agz::math::mat3f_c &rot, std::vector<Float3> &coefs)
+{
+    std::vector<float> channel_coefs;
+
+    const int N = static_cast<int>(coefs.size());
+    int base = 0, order = 0;
+    while(base < N)
+    {
+        const int cnt = 2 * order + 1;
+        channel_coefs.resize(cnt);
+
+        for(int ci = 0; ci < 3; ++ci)
+        {
+            for(int i = 0; i < cnt; ++i)
+                channel_coefs[i] = coefs[base + i][ci];
+
+            rotateEnvSHCoefs(rot, order, channel_coefs.data());
+
+            for(int i = 0; i < cnt; ++i)
+                coefs[base + i][ci] = channel_coefs[i];
+        }
+
+        base += cnt;
+        ++order;
+    }
 }

@@ -15,7 +15,7 @@ public:
         const float  *vertexSHCoefs,
         int           vertexCount);
 
-    void setLight(const float *coefs);
+    void setLight(const Float3 *coefs);
 
     void render(const Mat4 &viewProj);
 
@@ -30,10 +30,10 @@ private:
     {
         int    count;
         float  pad[3] = { 0, 0, 0 };
-        Float4 envSH[16];
+        Float4 envSH[25];
     };
 
-    static_assert(sizeof(VSEnvSH) == sizeof(Float4) * 17);
+    static_assert(sizeof(VSEnvSH) == sizeof(Float4) * 26);
 
     Shader<VS, PS>         shader_;
     Shader<VS, PS>::RscMgr shaderRscs_;

@@ -7,7 +7,7 @@ cbuffer VSEnvSH
 {
     int SHCount;
     float3 VSEnvSHPad0;
-    float4 EnvSH[16];
+    float4 EnvSH[25];
 }
 
 Buffer<float> VertexSHCoefs;
