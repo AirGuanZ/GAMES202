@@ -21,9 +21,7 @@ float rand(float3 co)
 
 float findBlockerDepth(float2 shadowUV, float zReceiver, float rnd)
 {
-    float searchRadius =
-        LightRadius * (zReceiver - LightNearPlane) / zReceiver *
-        LightNearPlane / zReceiver;
+    float searchRadius = LightRadius * (zReceiver - LightNearPlane) / zReceiver;
 
     float poissonAngleStep  = PI2 * 10 / float(BlockSearchSampleCount);
     float poissonAngle      = rnd * PI2;
