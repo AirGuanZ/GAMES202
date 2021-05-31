@@ -34,20 +34,17 @@ float getViewDepthFromRSMBuffer(float4 rsmClipPos)
 }
 
 float3 estimateIndirect(
-    float seed, float4 rsmClipPos, float3 position, float3 normal)
+    float4 rsmClipPos, float3 position, float3 normal)
 {
     float2 rsmCenter = 0.5 + 0.5 * rsmClipPos.xy / rsmClipPos.w;
     rsmCenter.y = 1 - rsmCenter.y;
-
-    float cosSeed = cos(seed), sinSeed = sin(seed);
-    float2x2 sampleRotator = float2x2(cosSeed, sinSeed, -sinSeed, cosSeed);
-
+    
     float3 sum = float3(0, 0, 0);
 
     for(int i = 0; i < PoissonDiskSampleCount; ++i)
     {
         float3 sam    = PoissonDiskSamples[i];
-        float2 rsmPos = rsmCenter + mul(sam.xy, sampleRotator);
+        float2 rsmPos = rsmCenter + sam.xy;
         float  weight = sam.z;
 
         if(all(saturate(rsmPos) == rsmPos))
@@ -59,7 +56,7 @@ float3 estimateIndirect(
             float3 diff = worldPos - position;
             float  dis2 = dot(diff, diff);
 
-            sum += weight * flux / (dis2 * dis2) *
+            sum += weight * flux / max(dis2 * dis2, 0.001) *
                    max(0.0, dot(normal, diff)) *
                    max(0.0, dot(worldNor, -diff));
         }

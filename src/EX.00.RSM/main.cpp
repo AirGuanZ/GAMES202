@@ -16,8 +16,8 @@ public:
 
 private:
 
-    static constexpr int RSM_W = 512;
-    static constexpr int RSM_H = 512;
+    static constexpr int RSM_W = 256;
+    static constexpr int RSM_H = 256;
 
     void initialize() override
     {
@@ -108,10 +108,20 @@ private:
                 lowres_indirect_.setSampleParams(rsmSamples_, rsmRadius_);
                 shade_.setSampleParams(rsmSamples_, rsmRadius_);
             }
+
             if(ImGui::SliderFloat("Sample Radius", &rsmRadius_, 0, 1))
             {
                 lowres_indirect_.setSampleParams(rsmSamples_, rsmRadius_);
                 shade_.setSampleParams(rsmSamples_, rsmRadius_);
+            }
+
+            if(ImGui::InputInt("Indirect Resolution", &lowres_.x))
+            {
+                lowres_.x = (std::max)(lowres_.x, 1);
+                lowres_.y = lowres_.x;
+
+                lowres_gbuffer_.resize(lowres_);
+                lowres_indirect_.resize(lowres_);
             }
         }
         ImGui::End();

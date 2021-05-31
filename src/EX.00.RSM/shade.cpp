@@ -31,10 +31,6 @@ void Renderer::initialize()
     shaderRscs_.getConstantBufferSlot<PS>("IndirectParams")
         ->setBuffer(psIndirectParams_);
 
-    /*lowResIndirectParams_.initialize();
-    shaderRscs_.getConstantBufferSlot<PS>("LowResIndirectParams")
-        ->setBuffer(lowResIndirectParams_);*/
-
     auto nearestSampler = device.createSampler(
         D3D11_FILTER_MIN_MAG_MIP_POINT,
         D3D11_TEXTURE_ADDRESS_CLAMP,

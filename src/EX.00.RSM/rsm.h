@@ -2,7 +2,7 @@
 
 #include "./common.h"
 
-// bufferA: worldPosition, viewDepth
+// bufferA: worldPosition, 1
 // bufferB: worldNormal, 1
 // bufferC: flux, 1
 class RSMGenerator : public agz::misc::uncopyable_t

@@ -28,11 +28,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
     float3 worldPos = gbufferA.xyz;
     float3 worldNor = decodeNormal(float2(gbufferA.w, gbufferB.w));
     
-    float seed = frac(sin(dot(
-        worldPos.xz, float2(12.9898, 78.233))) * 43758.5453);
     float4 rsmClipPos = worldToRSMClip(worldPos);
-    float3 indirect = estimateIndirect(
-        10000 * seed, rsmClipPos, worldPos, worldNor);
+    float3 indirect = estimateIndirect(rsmClipPos, worldPos, worldNor);
     
     return float4(indirect, 1);
 }

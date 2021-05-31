@@ -26,8 +26,7 @@ cmake ..
   * 有阴影
   * 有间接光照
 - [x] 拓展1：Reflective Shadow Maps
-  * 基于poisson disk样本采样RSM，计算间接光照
-  * 计算低分辨率间接光照，然后上采样到屏幕
+  * 基于poisson disk样本采样RSM，计算低分辨率间接光照，然后上采样到屏幕
   * 对G-Buffer上法线/颜色变化剧烈的部分，不使用低分辨率计算结果，转而进行精确计算
 
 ![](./gallery/00.ShadowMap.png)

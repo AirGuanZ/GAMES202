@@ -46,7 +46,7 @@ bool isLowResPixelGood(
     if(dot(nor, idealNor) < 0.8)
         return false;
 
-    if(any(color - idealColor > 0.2))
+    if(any(color - idealColor > 0.1))
         return false;
 
     indirect = sam.xyz;
@@ -102,13 +102,8 @@ float3 getIndirect(float2 uv, float3 color, float3 worldPos, float3 worldNor)
 
     if(sumCount >= 3)
         return sum / sumWeight;
-
-    float seed = frac(sin(dot(
-        worldPos.xz, float2(12.9898, 78.233))) * 43758.5453);
-    float4 rsmClipPos = worldToRSMClip(worldPos);
-
-    return estimateIndirect(
-        10000 * seed, rsmClipPos, worldPos, worldNor);
+    
+    return estimateIndirect(worldToRSMClip(worldPos), worldPos, worldNor);
 }
 
 float4 PSMain(VSOutput input) : SV_TARGET
@@ -126,17 +121,11 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     float lightFactor = max(0.0, dot(-worldNor, LightDirection));
 
-    // shadow
-    
-    float4 shadowClipPos = worldToRSMClip(worldPos + 0.02 * worldNor);
-    float smDepth = getViewDepthFromRSMBuffer(shadowClipPos);
-    float shadowFactor = smDepth >= shadowClipPos.z - 0.001 ? 1 : 0;
-
     // indirect
 
     float3 indirect = getIndirect(input.texCoord, color, worldPos, worldNor);
 
     float3 result =
-        LightRadiance * color * (lightFactor * shadowFactor + indirect);
+        LightRadiance * color * (lightFactor + indirect);
     return float4(pow(result, 1 / 2.2), 1);
 }
