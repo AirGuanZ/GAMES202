@@ -13,11 +13,11 @@ protected:
     Keyboard *keyboard_;
     Mouse    *mouse_;
 
-    virtual void initialize() = 0;
+    virtual void initialize() { }
 
-    virtual bool frame() = 0;
+    virtual bool frame() { return false; }
 
-    virtual void destroy() = 0;
+    virtual void destroy() { }
 
 public:
 
