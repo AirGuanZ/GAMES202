@@ -28,6 +28,8 @@ public:
         const DirectionalLight &light,
         const Mat4             &lightViewProj,
         float                   lightProjWorldArea);
+
+    void enableIndirect(bool enabled);
     
     void render();
 
@@ -37,14 +39,6 @@ private:
     {
         DirectionalLight light;
     };
-
-    /*struct LowResIndirectParams
-    {
-        float width;
-        float height;
-        float pad0;
-        float pad1;
-    };*/
 
     Shader<VS, PS>         shader_;
     Shader<VS, PS>::RscMgr shaderRscs_;
@@ -67,7 +61,4 @@ private:
 
     IndirectRenderer::IndirectParams                 psIndirectParamsData_ = {};
     ConstantBuffer<IndirectRenderer::IndirectParams> psIndirectParams_;
-
-    /*LowResIndirectParams                 lowResIndirectParamsData_ = {};
-    ConstantBuffer<LowResIndirectParams> lowResIndirectParams_;*/
 };

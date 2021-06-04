@@ -32,6 +32,8 @@ void IndirectRenderer::initialize(const Int2 &res)
     shaderRscs_.getSamplerSlot<PS>("RSMSampler")->setSampler(nearestSampler);
 
     resize(res);
+
+    psIndirectParamsData_.enableIndirect = 1;
 }
 
 void IndirectRenderer::resize(const Int2 &res)

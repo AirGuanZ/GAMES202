@@ -8,7 +8,7 @@ cbuffer IndirectParams
     int   PoissonDiskSampleCount;
     float IndirectSampleRadius;
     float LightProjWorldArea;
-    float IndirectParamsPad0;
+    int   EnableIndirect;
 }
 
 Texture2D<float4> RSMBufferA;

@@ -25,6 +25,12 @@ cmake ..
   * 无阴影
   * 有阴影
   * 有间接光照
+- [x] 作业3：屏幕空间漫反射全局照明
+  * 基于DDA的屏幕空间光线步进
+  * 屏幕空间的漫反射全局光照
+  * TODO：利用mipmap优化光线步进step，优化性能
+  * TODO：利用时间/空间滤波减少需要的采样数
+
 - [x] 拓展1：Reflective Shadow Maps
   * 基于poisson disk样本采样RSM，计算低分辨率间接光照，然后上采样到屏幕
   * 对G-Buffer上法线/颜色变化剧烈的部分，不使用低分辨率计算结果，转而进行精确计算
@@ -32,6 +38,8 @@ cmake ..
 ![](./gallery/00.ShadowMap.png)
 
 ![](./gallery/01.SH-PRT.png)
+
+![](./gallery/02.SSRT.png)
 
 ![](./gallery/EX.00.RSM.png)
 

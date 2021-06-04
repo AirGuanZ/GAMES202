@@ -26,6 +26,7 @@ private:
         rsm_.initialize({ RSM_W, RSM_H });
 
         shade_.initialize();
+        shade_.enableIndirect(enabledIndirect_);
         shade_.setSampleParams(rsmSamples_, rsmRadius_);
 
         lowres_gbuffer_.initialize(lowres_);
@@ -48,7 +49,7 @@ private:
         });
 
         meshes_.push_back({
-            loadMesh("./asset/torus.obj", { 0, 0.8f, 0 }),
+            loadMesh("./asset/torus.obj", { 0.5f, 0.9f, 0.9f }),
             Mat4::right_transform::translate(0, -0.4f, 0) *
             Mat4::right_transform::scale(1.5f, 1.5f, 1.5f)
         });
@@ -102,6 +103,9 @@ private:
         
         if(ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
+            if(ImGui::Checkbox("Enable Indirect", &enabledIndirect_))
+                shade_.enableIndirect(enabledIndirect_);
+
             if(ImGui::InputInt("Sample Count", &rsmSamples_))
             {
                 rsmSamples_ = (std::max)(rsmSamples_, 1);
@@ -221,8 +225,10 @@ private:
 
     Int2 lowres_ = { 100, 100 };
 
-    int   rsmSamples_ = 300;
-    float rsmRadius_  = 0.12f;
+    int   rsmSamples_ = 400;
+    float rsmRadius_  = 0.2f;
+
+    bool enabledIndirect_ = true;
 
     Camera camera_;
 
@@ -231,7 +237,6 @@ private:
     IndirectRenderer lowres_indirect_;
     RSMGenerator     rsm_;
     Renderer         shade_;
-
 
     std::vector<Mesh> meshes_;
 };

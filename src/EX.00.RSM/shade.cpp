@@ -31,6 +31,8 @@ void Renderer::initialize()
     shaderRscs_.getConstantBufferSlot<PS>("IndirectParams")
         ->setBuffer(psIndirectParams_);
 
+    psIndirectParamsData_.enableIndirect = 1;
+
     auto nearestSampler = device.createSampler(
         D3D11_FILTER_MIN_MAG_MIP_POINT,
         D3D11_TEXTURE_ADDRESS_CLAMP,
@@ -86,6 +88,11 @@ void Renderer::setLight(
 
     psIndirectParamsData_.lightViewProj      = lightViewProj;
     psIndirectParamsData_.lightProjWorldArea = lightProjWorldArea;
+}
+
+void Renderer::enableIndirect(bool enabled)
+{
+    psIndirectParamsData_.enableIndirect = enabled;
 }
 
 void Renderer::render()

@@ -55,6 +55,9 @@ bool isLowResPixelGood(
 
 float3 getIndirect(float2 uv, float3 color, float3 worldPos, float3 worldNor)
 {
+    if(!EnableIndirect)
+        return float3(0, 0, 0);
+
     int width, height;
     LowResGBufferA.GetDimensions(width, height);
 

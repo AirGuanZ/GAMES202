@@ -5,6 +5,8 @@
 
 #include "./poisson.h"
 
+// IMPROVE: use better sampling strategy: weighted sample elimination
+
 ComPtr<ID3D11ShaderResourceView> createPoissionDiskSamplesSRV(
     int sampleCount, float radius)
 {

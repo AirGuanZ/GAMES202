@@ -13,7 +13,7 @@ public:
         int   sampleCount;
         float sampleRadius;
         float lightProjWorldArea;
-        float pad0;
+        int   enableIndirect;
     };
 
     void initialize(const Int2 &res);
