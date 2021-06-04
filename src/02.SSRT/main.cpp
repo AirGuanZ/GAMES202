@@ -26,7 +26,7 @@ private:
         shadow_  .initialize({ 1024, 1024});
 
         indirect_.setSampleCount(sampleCount_);
-        indirect_.setTracer(maxTraceSteps_, maxRayLength_);
+        indirect_.setTracer(maxTraceSteps_);
         indirect_.setDepthThreshold(depthThreshold_);
 
         window_->attach([this](const WindowPostResizeEvent &e)
@@ -97,12 +97,10 @@ private:
                 indirect_.setSampleCount(sampleCount_);
             }
 
-            if(ImGui::InputInt("Max Trace Steps", &maxTraceSteps_) |
-               ImGui::InputFloat("Max Ray Length", &maxRayLength_))
+            if(ImGui::InputInt("Max Trace Steps", &maxTraceSteps_))
             {
                 maxTraceSteps_ = (std::max)(1, maxTraceSteps_);
-                maxRayLength_  = (std::max)(0.0f, maxRayLength_);
-                indirect_.setTracer(maxTraceSteps_, maxRayLength_);
+                indirect_.setTracer(maxTraceSteps_);
             }
 
             if(ImGui::InputFloat("Depth Threshold", &depthThreshold_))
@@ -122,8 +120,8 @@ private:
         // light
         
         DirectionalLight light = {};
-        light.direction = Float3(0, -2, 0).normalize();
-        light.radiance  = Float3(8);
+        light.direction = Float3(0, -2, -0.4f).normalize();
+        light.radiance  = Float3(5);
 
         const Float3 lightLookAt = { 0, 0, 0 };
         const Mat4 lightViewProj =
@@ -252,9 +250,8 @@ private:
     bool enableIndirect_ = true;
 
     int   sampleCount_    = 16;
-    int   maxTraceSteps_  = 256;
-    float maxRayLength_   = 10;
-    float depthThreshold_ = 2;
+    int   maxTraceSteps_  = 128;
+    float depthThreshold_ = 4;
 
     Camera camera_;
 

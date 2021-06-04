@@ -57,14 +57,15 @@ PSOutput PSMain(VSOutput input)
     float3 worldTgn = normalize(input.worldTangent);
     float3 worldBno = normalize(cross(worldNor, worldTgn));
 
-    // assume albedo is stored in linear space
-    float3 albedo = Albedo.Sample(LinearSampler, input.texCoord);
+    float3 albedo = pow(Albedo.Sample(LinearSampler, input.texCoord), 2.2);
 
     float3 ln = normalize(2 * Normal.Sample(LinearSampler, input.texCoord) - 1);
     float3 gn = ln.x * worldTgn + ln.y * worldBno + ln.z * worldNor;
     float2 octNor = encodeNormal(normalize(gn));
 
-    float3 color  = albedo / 3.14159265;
+    // should be divided PI in physics
+    // simply use it as 'diffuse' here
+    float3 color  = albedo;
     float  color1 = packFloats(color.r, color.b);
     float  color2 = color.g;
 

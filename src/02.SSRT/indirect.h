@@ -14,7 +14,7 @@ public:
 
     void setSampleCount(int sampleCount);
 
-    void setTracer(int maxSteps, float maxRayLength);
+    void setTracer(int maxSteps);
 
     void setDepthThreshold(float threshold);
 
@@ -36,13 +36,13 @@ private:
 
         uint32_t sampleCount;
         uint32_t maxTraceSteps;
-        float    maxTraceLength;
+        float    depthThreshold;
         float    projNearZ;
 
         float outputWidth;
         float outputHeight;
-        float depthThreshold;
         float pad0;
+        float pad1;
     };
 
     Shader<VS, PS>         shader_;

@@ -59,10 +59,9 @@ void IndirectRenderer::setSampleCount(int sampleCount)
     updateRawSamples();
 }
 
-void IndirectRenderer::setTracer(int maxSteps, float maxRayLength)
+void IndirectRenderer::setTracer(int maxSteps)
 {
     indirectParamsData_.maxTraceSteps  = maxSteps;
-    indirectParamsData_.maxTraceLength = maxRayLength;
 }
 
 void IndirectRenderer::setDepthThreshold(float threshold)

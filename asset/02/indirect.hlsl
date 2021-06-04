@@ -24,13 +24,13 @@ cbuffer IndirectParams
 
     uint  SampleCount;
     uint  MaxTraceSteps;
-    float MaxTraceLength;
+    float DepthThreshold;
     float ProjNearZ;
 
     float OutputWidth;
     float OutputHeight;
-    float DepthThreshold;
     float IndirectParamsPad0;
+    float IndirectParamsPad1;
 }
 
 Texture2D<float4> GBufferA;
@@ -44,8 +44,7 @@ StructuredBuffer<float2> RawSamples;
 // ray cast in view space
 bool trace(float3 ori, float3 dir, out float2 posNDC)
 {
-    float rayLen = (ori.z + dir.z * MaxTraceLength < ProjNearZ) ?
-                   (ProjNearZ - ori.z) / dir.z : MaxTraceLength;
+    float rayLen = (ori.z + dir.z < ProjNearZ) ? (ProjNearZ - ori.z) / dir.z : 1;
     float3 end = ori + rayLen * dir;
 
     float4 oriClip = mul(float4(ori, 1), Proj);
@@ -58,22 +57,18 @@ bool trace(float3 ori, float3 dir, out float2 posNDC)
     float2 oriNDC = oriClip.xy * oriInvW;
     // NDC extent of ray
     float2 dtaNDC = endClip.xy * endInvW - oriNDC;
-    // pixel extent of ray
-    float2 dtaPxl = (float2(0.5, 0.5) + float2(0.5, -0.5) * dtaNDC)
-                  * float2(OutputWidth, OutputHeight);
-
+    
     // step along x or y
     bool swapXY = false;
-    if(abs(dtaPxl.x) < abs(dtaPxl.y))
+    if(abs(dtaNDC.x * OutputWidth) < abs(dtaNDC.y * OutputHeight))
     {
         swapXY = true;
         oriNDC = oriNDC.yx;
         dtaNDC = dtaNDC.yx;
-        dtaPxl = dtaPxl.yx;
     }
 
     // NDC step
-    float  dx = sign(dtaPxl.x) * 2 / (swapXY ? OutputHeight : OutputWidth);
+    float  dx = sign(dtaNDC.x) * 2 / (swapXY ? OutputHeight : OutputWidth);
     float  dy = dtaNDC.y / dtaNDC.x * dx;
     float2 dP = float2(dx, dy);
 
@@ -84,21 +79,20 @@ bool trace(float3 ori, float3 dir, out float2 posNDC)
     float dZOverW = (endZOverW - oriZOverW) / dtaNDC.x * dx;
 
     // 1/w step
-    float dInvW   = (endInvW - oriInvW)     / dtaNDC.x * dx;
+    float dInvW = (endInvW - oriInvW) / dtaNDC.x * dx;
 
     float2 P     = oriNDC + dP;
     float zOverW = oriZOverW + dZOverW;
     float invW   = oriInvW + dInvW;
-
-    uint maxSteps = min(MaxTraceSteps, uint(floor(abs(dtaPxl.x))));
-    for(uint i = 0; i < maxSteps; ++i)
+    
+    for(uint i = 0; i < MaxTraceSteps; ++i)
     {
         float2 NDC = swapXY ? P.yx : P;
         float2 uv  = float2(0.5, 0.5) + float2(0.5, -0.5) * NDC;
         if(any(saturate(uv) != uv))
             return false;
 
-        float rayDepth     = zOverW / invW;
+        float rayDepth     = zOverW / invW - 0.01;
         float sampledDepth = GBufferB.SampleLevel(PointSampler, uv, 0).z;
 
         if(sampledDepth <= rayDepth && rayDepth <= sampledDepth + DepthThreshold)
@@ -107,9 +101,10 @@ bool trace(float3 ori, float3 dir, out float2 posNDC)
             return true;
         }
 
-        P      += dP;
-        zOverW += dZOverW;
-        invW   += dInvW;
+        float step = log(3 + 3 * pow(i, 1.3)); // hack
+        P      += step * dP;
+        zOverW += step * dZOverW;
+        invW   += step * dInvW;
     }
 
     return false;
@@ -145,7 +140,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         local_y = cross(local_z, float3(0, 1, 0));
     local_y = normalize(local_y);
 
-    float3 local_x = cross(local_y, local_z);
+    float3 local_x = normalize(cross(local_y, local_z));
 
     // estimate indirect
 
@@ -171,9 +166,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             float2 uv     = float2(0.5, 0.5) + float2(0.5, -0.5) * ndc;
             float3 direct = Direct.SampleLevel(PointSampler, uv, 0);
-            sum += direct * PI; // cos / pdf ==  PI
+            sum += direct;
         }
     }
 
-    return float4(color * sum / SampleCount, 1);
+    return float4(PI * color * sum / SampleCount, 1);
 }
