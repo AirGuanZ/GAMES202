@@ -1,3 +1,5 @@
+#include "./float.hlsl"
+
 struct VSOutput
 {
     float4 position : SV_POSITION;
@@ -16,12 +18,14 @@ cbuffer PSParams
 {
     int EnableDirect;
     int EnableIndirect;
-    float PSParamsPad0;
+    int EnableIndirectColor;
     float PSParamsPad1;
 }
 
 Texture2D<float4> Direct;
 Texture2D<float4> Indirect;
+
+Texture2D<float4> GBufferB;
 
 SamplerState PointSampler;
 
@@ -35,17 +39,26 @@ float4 PSMain(VSOutput input) : SV_TARGET
         return float4(pow(direct.xyz, 1 / 2.2), 1);
     }
 
+    float4 gb = GBufferB.Sample(PointSampler, input.texCoord, 0);
+    
+    float colorR, colorB;
+    unpackFloat(gb.x, colorR, colorB);
+    float3 color = float3(colorR, gb.y, colorB);
+
+    if(!EnableIndirectColor)
+        color = float3(1, 1, 1);
+
     if(!EnableDirect && EnableIndirect)
     {
         float4 indirect = Indirect.SampleLevel(PointSampler, input.texCoord, 0);
         if(indirect.w == 0)
             discard;
-        return float4(pow(indirect.xyz, 1 / 2.2), 1);
+        return float4(pow(color * indirect.xyz, 1 / 2.2), 1);
     }
 
-    float4 direct   = Direct.SampleLevel(PointSampler, input.texCoord, 0);
+    float4 direct   = Direct  .SampleLevel(PointSampler, input.texCoord, 0);
     float4 indirect = Indirect.SampleLevel(PointSampler, input.texCoord, 0);
     if(direct.w == 0)
         discard;
-    return float4(pow(direct.xyz + indirect.xyz, 1 / 2.2), 1);
+    return float4(pow(direct.xyz + color * indirect.xyz, 1 / 2.2), 1);
 }

@@ -83,8 +83,8 @@ void GBufferGenerator::resize(const Int2 &res)
 
 void GBufferGenerator::setCamera(const Mat4 &view, const Mat4 &viewProj)
 {
-    view_     = view;
-    viewProj_ = viewProj;
+    view_         = view;
+    viewProj_     = viewProj;
 }
 
 ComPtr<ID3D11ShaderResourceView> GBufferGenerator::getGBuffer(int index) const
@@ -126,8 +126,11 @@ void GBufferGenerator::end()
 
 void GBufferGenerator::render(const Mesh &mesh)
 {
-    vsTransform_.update(
-        { mesh.world * viewProj_, mesh.world * view_, mesh.world });
+    vsTransform_.update({
+        mesh.world * viewProj_,
+        mesh.world * view_,
+        mesh.world
+    });
 
     albedoSlot_->setShaderResourceView(mesh.albedo);
     normalSlot_->setShaderResourceView(mesh.normal);

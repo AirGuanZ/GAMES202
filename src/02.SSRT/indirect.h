@@ -36,7 +36,7 @@ private:
         uint32_t sampleCount;
         uint32_t maxTraceSteps;
         float    projNearZ;
-        float    pad0;
+        float    FrameIndex;
 
         float outputWidth;
         float outputHeight;

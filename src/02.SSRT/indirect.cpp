@@ -79,6 +79,9 @@ void IndirectRenderer::render(
     ComPtr<ID3D11ShaderResourceView> viewZMipmap,
     ComPtr<ID3D11ShaderResourceView> direct)
 {
+    static int frameIndex = 0;
+    indirectParamsData_.FrameIndex = static_cast<float>(frameIndex++);
+
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     viewZMipmap->GetDesc(&srvDesc);
     const int totalLevels = srvDesc.Texture2D.MipLevels;
@@ -127,7 +130,7 @@ void IndirectRenderer::updateRawSamples()
     std::vector<cy::Point2f> candidateSamples;
     for(int i = 0; i < N; ++i)
     {
-        for(int j = 0; j < 6; ++j)
+        for(int j = 0; j < 10; ++j)
         {
             const float x = dis(rng);
             const float y = dis(rng);

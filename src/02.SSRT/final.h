@@ -9,8 +9,10 @@ public:
     void initialize();
 
     void render(
+        ComPtr<ID3D11ShaderResourceView> gbufferB,
         ComPtr<ID3D11ShaderResourceView> direct,
-        ComPtr<ID3D11ShaderResourceView> indirect);
+        ComPtr<ID3D11ShaderResourceView> indirect,
+        bool                             indirectColor);
 
 private:
 
@@ -18,7 +20,7 @@ private:
     {
         int   direct;
         int   indirect;
-        float pad0;
+        int   indirectColor;
         float pad1;
     };
 
@@ -27,6 +29,7 @@ private:
 
     ShaderResourceViewSlot<PS> *directSlot_   = nullptr;
     ShaderResourceViewSlot<PS> *indirectSlot_ = nullptr;
+    ShaderResourceViewSlot<PS> *gbufferBSlot_ = nullptr;
 
     ConstantBuffer<PSParams> psParams_;
 };

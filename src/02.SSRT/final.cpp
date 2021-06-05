@@ -11,6 +11,7 @@ void FinalRenderer::initialize()
 
     directSlot_   = shaderRscs_.getShaderResourceViewSlot<PS>("Direct");
     indirectSlot_ = shaderRscs_.getShaderResourceViewSlot<PS>("Indirect");
+    gbufferBSlot_ = shaderRscs_.getShaderResourceViewSlot<PS>("GBufferB");
 
     psParams_.initialize();
     shaderRscs_.getConstantBufferSlot<PS>("PSParams")->setBuffer(psParams_);
@@ -24,14 +25,17 @@ void FinalRenderer::initialize()
 }
 
 void FinalRenderer::render(
+    ComPtr<ID3D11ShaderResourceView> gbufferB,
     ComPtr<ID3D11ShaderResourceView> direct,
-    ComPtr<ID3D11ShaderResourceView> indirect)
+    ComPtr<ID3D11ShaderResourceView> indirect,
+    bool                             indirectColor)
 {
     assert(direct || indirect);
 
     PSParams psParamsData = {};
-    psParamsData.direct   = direct != nullptr;
-    psParamsData.indirect = indirect != nullptr;
+    psParamsData.direct        = direct != nullptr;
+    psParamsData.indirect      = indirect != nullptr;
+    psParamsData.indirectColor = indirectColor;
 
     psParams_.update(psParamsData);
 
@@ -42,6 +46,7 @@ void FinalRenderer::render(
 
     directSlot_->setShaderResourceView(direct);
     indirectSlot_->setShaderResourceView(indirect);
+    gbufferBSlot_->setShaderResourceView(gbufferB);
 
     shader_.bind();
     shaderRscs_.bind();
@@ -54,4 +59,5 @@ void FinalRenderer::render(
 
     directSlot_->setShaderResourceView(nullptr);
     indirectSlot_->setShaderResourceView(nullptr);
+    gbufferBSlot_->setShaderResourceView(nullptr);
 }

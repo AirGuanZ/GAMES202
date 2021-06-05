@@ -3,6 +3,7 @@
 #include <common/application.h>
 #include <common/camera.h>
 
+#include "./accumulate.h"
 #include "./direct.h"
 #include "./final.h"
 #include "./gbuffer.h"
@@ -20,23 +21,31 @@ private:
 
     void initialize() override
     {
+        accu_    .initialize(window_->getClientSize());
         direct_  .initialize(window_->getClientSize());
         final_   .initialize();
-        gbuffer_ .initialize(window_->getClientSize());
+        gbufferA_.initialize(window_->getClientSize());
+        gbufferB_.initialize(window_->getClientSize());
         indirect_.initialize(window_->getClientSize());
         mipmap_  .initialize(window_->getClientSize());
         shadow_  .initialize({ 1024, 1024});
+
+        gbuffer_ = &gbufferA_;
 
         indirect_.setSampleCount(sampleCount_);
         indirect_.setTracer(
             maxTraceSteps_, initialMipLevel_, initialTraceStep_);
 
+        accu_.setFactor(accuAlpha_);
+
         window_->attach([this](const WindowPostResizeEvent &e)
         {
-            direct_.resize({ e.width, e.height });
-            gbuffer_.resize({ e.width, e.height });
+            accu_    .resize({ e.width, e.height });
+            direct_  .resize({ e.width, e.height });
+            gbufferA_.resize({ e.width, e.height });
+            gbufferB_.resize({ e.width, e.height });
             indirect_.resize({ e.width, e.height });
-            mipmap_.resize({ e.width, e.height });
+            mipmap_  .resize({ e.width, e.height });
         });
 
         meshes_.push_back(loadMesh(
@@ -74,6 +83,8 @@ private:
 
         // camera
 
+        auto lastViewProj = camera_.getViewProj();
+
         camera_.setWOverH(window_->getClientWOverH());
         if(!mouse_->isVisible())
         {
@@ -89,7 +100,7 @@ private:
                 });
         }
         camera_.recalculateMatrics();
-
+        
         // gui
 
         if(ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -121,11 +132,24 @@ private:
                     maxTraceSteps_, initialMipLevel_, initialTraceStep_);
             }
 
+            if(ImGui::SliderFloat("Alpha", &accuAlpha_, 0, 1))
+                accu_.setFactor(accuAlpha_);
+
             if(ImGui::Checkbox("Enable Direct", &enableDirect_) && !enableDirect_)
                 enableIndirect_ = true;
+            ImGui::SameLine();
             if(ImGui::Checkbox("Enable Indirect", &enableIndirect_) && !enableIndirect_)
                 enableDirect_ = true;
+
+            if(!enableDirect_ && enableIndirect_)
+            {
+                ImGui::SameLine();
+                ImGui::Checkbox("Enable Indirect Color", &enableIndirectColor_);
+            }
+
             assert(enableDirect_ || enableIndirect_);
+            if(enableDirect_ && enableIndirect_)
+                enableIndirectColor_ = true;
         }
         ImGui::End();
 
@@ -139,7 +163,7 @@ private:
         const Mat4 lightViewProj =
             Mat4::right_transform::look_at(
                 lightLookAt - 15 * light.direction, lightLookAt, { 1, 0, 0 }) *
-            Mat4::right_transform::orthographic(-10, 10, 10, -10, 3, 40);
+            Mat4::right_transform::orthographic(-5, 5, 5, -5, 3, 40);
 
         // shadow
 
@@ -151,35 +175,54 @@ private:
 
         // gbuffer
 
-        gbuffer_.setCamera(camera_.getView(), camera_.getViewProj());
-        gbuffer_.begin();
+        auto lastGBuffer_ = gbuffer_;
+        gbuffer_ = gbuffer_ == &gbufferA_ ? &gbufferB_ : &gbufferA_;
+
+        gbuffer_->setCamera(camera_.getView(), camera_.getViewProj());
+        gbuffer_->begin();
         for(auto &m : meshes_)
-            gbuffer_.render(m);
-        gbuffer_.end();
+            gbuffer_->render(m);
+        gbuffer_->end();
 
         // mipmap
 
-        mipmap_.generate(gbuffer_.getGBuffer(1));
+        mipmap_.generate(gbuffer_->getGBuffer(1));
 
         // direct light
 
         direct_.setLight(light, lightViewProj);
         direct_.render(
             shadow_.getShadowMap(),
-            gbuffer_.getGBuffer(0),
-            gbuffer_.getGBuffer(1));
+            gbuffer_->getGBuffer(0),
+            gbuffer_->getGBuffer(1));
 
         // indirect light
 
         if(enableIndirect_)
         {
+            // hack: regenerate samples in every frame so that we can accumulate
+            // results in history frames. in theory, progressive low-disparency
+            // sequence can converge faster.
+            indirect_.setSampleCount(sampleCount_);
+
             indirect_.setCamera(
                 camera_.getView(), camera_.getProj(), camera_.getNearZ());
             indirect_.render(
-                gbuffer_.getGBuffer(0),
-                gbuffer_.getGBuffer(1),
+                gbuffer_->getGBuffer(0),
+                gbuffer_->getGBuffer(1),
                 mipmap_.getOutput(),
                 direct_.getOutput());
+        }
+
+        // accumulate
+
+        if(enableIndirect_)
+        {
+            accu_.setCamera(lastViewProj);
+            accu_.accumulate(
+                lastGBuffer_->getGBuffer(0),
+                gbuffer_->getGBuffer(0),
+                indirect_.getOutput());
         }
 
         // render
@@ -190,8 +233,10 @@ private:
         window_->clearDefaultRenderTarget({ 0, 1, 1, 0 });
 
         final_.render(
-            enableDirect_   ? direct_.getOutput()   : nullptr,
-            enableIndirect_ ? indirect_.getOutput() : nullptr);
+            gbuffer_->getGBuffer(1),
+            enableDirect_   ? direct_.getOutput() : nullptr,
+            enableIndirect_ ? accu_  .getOutput() : nullptr,
+            enableIndirectColor_);
 
         // finalize
         
@@ -257,20 +302,27 @@ private:
         return mesh;
     }
 
-    DirectRenderer    direct_;
-    FinalRenderer     final_;
-    GBufferGenerator  gbuffer_;
-    IndirectRenderer  indirect_;
-    MipmapsGenerator  mipmap_;
-    ShadowMapRenderer shadow_;
+    IndirectAccumulator accu_;
+    DirectRenderer      direct_;
+    FinalRenderer       final_;
+    GBufferGenerator    gbufferA_;
+    GBufferGenerator    gbufferB_;
+    IndirectRenderer    indirect_;
+    MipmapsGenerator    mipmap_;
+    ShadowMapRenderer   shadow_;
 
-    bool enableDirect_   = true;
-    bool enableIndirect_ = true;
+    GBufferGenerator *gbuffer_ = nullptr;
 
-    int   sampleCount_      = 16;
+    bool enableDirect_        = true;
+    bool enableIndirect_      = true;
+    bool enableIndirectColor_ = true;
+
+    int   sampleCount_      = 4;
     int   maxTraceSteps_    = 32;
     int   initialMipLevel_  = 4;
-    float initialTraceStep_ = 10;
+    float initialTraceStep_ = 16;
+
+    float accuAlpha_ = 0.05f;
 
     Camera camera_;
 

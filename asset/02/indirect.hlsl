@@ -1,4 +1,3 @@
-#include "./float.hlsl"
 #include "./octnor.hlsl"
 
 #define PI 3.14159265
@@ -25,7 +24,7 @@ cbuffer IndirectParams
     uint  SampleCount;
     uint  MaxTraceSteps;
     float ProjNearZ;
-    float IndirectParamsPad0;
+    float FrameIndex;
 
     float OutputWidth;
     float OutputHeight;
@@ -61,6 +60,8 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
     // NDC extent of ray
     float2 dtaNDC = endClip.xy * endInvW - oriNDC;
     
+    float2 dtaPxl = dtaNDC * float2(OutputWidth, OutputHeight);
+    
     // step along x or y
     bool swapXY = false;
     if(abs(dtaNDC.x * OutputWidth) < abs(dtaNDC.y * OutputHeight))
@@ -68,13 +69,15 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
         swapXY = true;
         oriNDC = oriNDC.yx;
         dtaNDC = dtaNDC.yx;
+        dtaPxl = dtaPxl.yx;
     }
 
     // NDC step
     float  dx = sign(dtaNDC.x) * 2 / (swapXY ? OutputHeight : OutputWidth);
+    dx *= abs(dtaPxl.x / length(dtaPxl));
     float  dy = dtaNDC.y / dtaNDC.x * dx;
     float2 dP = float2(dx, dy);
-
+    
     float oriZOverW = ori.z * oriInvW;
     float endZOverW = end.z * endInvW;
 
@@ -91,7 +94,7 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
     finishedSteps[level] = 0;
 
     float nextT[5];
-    nextT[level] = 20 * jitter * step;
+    nextT[level] = jitter * step;
 
     for(;;)
     {
@@ -152,13 +155,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
     float4 gbufferB = GBufferB.SampleLevel(PointSampler, input.texCoord, 0);
 
     float3 position = gbufferA.xyz;
-    float2 color12  = gbufferB.xy;
     float3 normal   = decodeNormal(float2(gbufferA.w, gbufferB.w));
-
-    float colorR = 0, colorB = 0;
-    unpackFloat(color12.x, colorR, colorB);
-    float3 color = float3(colorR, color12.y, colorB);
-
+    
     // build local frame
 
     float3 ori = mul(float4(position, 1), View).xyz;
@@ -176,8 +174,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     // estimate indirect
 
-    float2 sampleOffset = frac(sin(dot(
-        position.xy * position.z, float2(12.9898, 78.233) * 2.0)) * 43758.5453);
+    float2 sampleOffset = frac(sin(FrameIndex + dot(
+        position.xy, float2(12.9898, 78.233) * 2.0)) * 43758.5453);
 
     float3 sum = float3(0, 0, 0);
     for(uint i = 0; i < SampleCount; ++i)
@@ -193,7 +191,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         dir = dir.x * local_x + dir.y * local_y + dir.z * local_z;
         dir = normalize(mul(float4(dir, 0), View).xyz);
 
-        float jitter = frac(sin(raw.x * 12.9898 * 2) * 43758.5453);
+        float jitter = frac(sin(FrameIndex + raw.x * 12.9898 * 2) * 43758.5453);
 
         float2 ndc;
         if(trace(jitter, ori, dir, ndc))
@@ -204,5 +202,5 @@ float4 PSMain(VSOutput input) : SV_TARGET
         }
     }
 
-    return float4(PI * color * sum / SampleCount, 1);
+    return float4(PI * sum / SampleCount, 1);
 }

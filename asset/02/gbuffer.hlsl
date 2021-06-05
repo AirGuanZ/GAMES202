@@ -37,6 +37,7 @@ VSOutput VSMain(VSInput input)
     output.worldTangent  = normalize(mul(float4(input.tangent, 0), World).xyz);
     output.viewDepth     = viewPos.z / viewPos.w;
     output.texCoord      = input.texCoord;
+
     return output;
 }
 
@@ -44,6 +45,7 @@ struct PSOutput
 {
     float4 output0 : SV_TARGET0;
     float4 output1 : SV_TARGET1;
+    float4 output2 : SV_TARGET2;
 };
 
 Texture2D<float3> Albedo;
