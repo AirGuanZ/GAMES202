@@ -24,25 +24,28 @@ cbuffer IndirectParams
 
     uint  SampleCount;
     uint  MaxTraceSteps;
-    float DepthThreshold;
     float ProjNearZ;
+    float IndirectParamsPad0;
 
     float OutputWidth;
     float OutputHeight;
-    float IndirectParamsPad0;
-    float IndirectParamsPad1;
+
+    int   InitialMipLevel;
+    float InitialTraceStep;
 }
 
 Texture2D<float4> GBufferA;
 Texture2D<float4> GBufferB;
 Texture2D<float3> Direct;
 
+Texture2D<float> ViewZMipmap;
+
 SamplerState PointSampler;
 
 StructuredBuffer<float2> RawSamples;
 
 // ray cast in view space
-bool trace(float3 ori, float3 dir, out float2 posNDC)
+bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
 {
     float rayLen = (ori.z + dir.z < ProjNearZ) ? (ProjNearZ - ori.z) / dir.z : 1;
     float3 end = ori + rayLen * dir;
@@ -81,30 +84,59 @@ bool trace(float3 ori, float3 dir, out float2 posNDC)
     // 1/w step
     float dInvW = (endInvW - oriInvW) / dtaNDC.x * dx;
 
-    float2 P     = oriNDC + dP;
-    float zOverW = oriZOverW + dZOverW;
-    float invW   = oriInvW + dInvW;
+    int   level = InitialMipLevel;
+    float step  = InitialTraceStep;
     
-    for(uint i = 0; i < MaxTraceSteps; ++i)
+    uint finishedSteps[5];
+    finishedSteps[level] = 0;
+
+    float nextT[5];
+    nextT[level] = 20 * jitter * step;
+
+    for(;;)
     {
+        if(level < InitialMipLevel && finishedSteps[level] == 4)
+        {
+            level += 2;
+            step *= 4;
+            ++finishedSteps[level];
+            continue;
+        }
+
+        if(level == InitialMipLevel && finishedSteps[level] == MaxTraceSteps)
+            return false;
+
+        float t = nextT[level];
+        nextT[level] = t + step;
+
+        float2 P      = oriNDC    + t * dP;
+        float  zOverW = oriZOverW + t * dZOverW;
+        float  invW   = oriInvW   + t * dInvW;
+
         float2 NDC = swapXY ? P.yx : P;
         float2 uv  = float2(0.5, 0.5) + float2(0.5, -0.5) * NDC;
         if(any(saturate(uv) != uv))
             return false;
 
-        float rayDepth     = zOverW / invW - 0.01;
-        float sampledDepth = GBufferB.SampleLevel(PointSampler, uv, 0).z;
+        float rayDepth     = zOverW / invW - 0.1;
+        float sampledDepth = ViewZMipmap.SampleLevel(PointSampler, uv, level);
 
-        if(sampledDepth <= rayDepth && rayDepth <= sampledDepth + DepthThreshold)
+        if(sampledDepth > rayDepth)
+        {
+            ++finishedSteps[level];
+            continue;
+        }
+
+        if(level == 0)
         {
             posNDC = NDC;
             return true;
         }
 
-        float step = log(3 + 3 * pow(i, 1.3)); // hack
-        P      += step * dP;
-        zOverW += step * dZOverW;
-        invW   += step * dInvW;
+        level -= 2;
+        step /= 4;
+        nextT[level] = t + step;
+        finishedSteps[level] = 0;
     }
 
     return false;
@@ -145,7 +177,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
     // estimate indirect
 
     float2 sampleOffset = frac(sin(dot(
-        input.texCoord, float2(12.9898, 78.233) * 2.0)) * 43758.5453);
+        position.xy * position.z, float2(12.9898, 78.233) * 2.0)) * 43758.5453);
 
     float3 sum = float3(0, 0, 0);
     for(uint i = 0; i < SampleCount; ++i)
@@ -161,8 +193,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
         dir = dir.x * local_x + dir.y * local_y + dir.z * local_z;
         dir = normalize(mul(float4(dir, 0), View).xyz);
 
+        float jitter = frac(sin(raw.x * 12.9898 * 2) * 43758.5453);
+
         float2 ndc;
-        if(trace(ori, dir, ndc))
+        if(trace(jitter, ori, dir, ndc))
         {
             float2 uv     = float2(0.5, 0.5) + float2(0.5, -0.5) * ndc;
             float3 direct = Direct.SampleLevel(PointSampler, uv, 0);

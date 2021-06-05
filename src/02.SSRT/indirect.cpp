@@ -14,10 +14,11 @@ void IndirectRenderer::initialize(const Int2 &res)
 
     shaderRscs_ = shader_.createResourceManager();
 
-    gbufferASlot_   = shaderRscs_.getShaderResourceViewSlot<PS>("GBufferA");
-    gbufferBSlot_   = shaderRscs_.getShaderResourceViewSlot<PS>("GBufferB");
-    directSlot_     = shaderRscs_.getShaderResourceViewSlot<PS>("Direct");
-    rawSamplesSlot_ = shaderRscs_.getShaderResourceViewSlot<PS>("RawSamples");
+    gbufferASlot_    = shaderRscs_.getShaderResourceViewSlot<PS>("GBufferA");
+    gbufferBSlot_    = shaderRscs_.getShaderResourceViewSlot<PS>("GBufferB");
+    viewZMipmapSlot_ = shaderRscs_.getShaderResourceViewSlot<PS>("ViewZMipmap");
+    directSlot_      = shaderRscs_.getShaderResourceViewSlot<PS>("Direct");
+    rawSamplesSlot_  = shaderRscs_.getShaderResourceViewSlot<PS>("RawSamples");
     
     indirectParams_.initialize();
     shaderRscs_.getConstantBufferSlot<PS>("IndirectParams")
@@ -59,14 +60,12 @@ void IndirectRenderer::setSampleCount(int sampleCount)
     updateRawSamples();
 }
 
-void IndirectRenderer::setTracer(int maxSteps)
+void IndirectRenderer::setTracer(
+    int maxSteps, int initialMipLevel, float initialTraceStep)
 {
-    indirectParamsData_.maxTraceSteps  = maxSteps;
-}
-
-void IndirectRenderer::setDepthThreshold(float threshold)
-{
-    indirectParamsData_.depthThreshold = threshold;
+    indirectParamsData_.maxTraceSteps    = maxSteps;
+    indirectParamsData_.initialMipLevel  = initialMipLevel;
+    indirectParamsData_.initialTraceStep = initialTraceStep;
 }
 
 ComPtr<ID3D11ShaderResourceView> IndirectRenderer::getOutput() const
@@ -77,11 +76,24 @@ ComPtr<ID3D11ShaderResourceView> IndirectRenderer::getOutput() const
 void IndirectRenderer::render(
     ComPtr<ID3D11ShaderResourceView> gbufferA,
     ComPtr<ID3D11ShaderResourceView> gbufferB,
+    ComPtr<ID3D11ShaderResourceView> viewZMipmap,
     ComPtr<ID3D11ShaderResourceView> direct)
 {
-    gbufferASlot_->setShaderResourceView(std::move(gbufferA));
-    gbufferBSlot_->setShaderResourceView(std::move(gbufferB));
-    directSlot_  ->setShaderResourceView(std::move(direct));
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    viewZMipmap->GetDesc(&srvDesc);
+    const int totalLevels = srvDesc.Texture2D.MipLevels;
+
+    indirectParamsData_.initialMipLevel = (std::min)(
+        indirectParamsData_.initialMipLevel, totalLevels - 1);
+    indirectParamsData_.initialMipLevel = (std::min)(
+        indirectParamsData_.initialMipLevel, 4);
+    if(indirectParamsData_.initialMipLevel % 2 == 1)
+        --indirectParamsData_.initialMipLevel;
+
+    gbufferASlot_   ->setShaderResourceView(std::move(gbufferA));
+    gbufferBSlot_   ->setShaderResourceView(std::move(gbufferB));
+    viewZMipmapSlot_->setShaderResourceView(std::move(viewZMipmap));
+    directSlot_     ->setShaderResourceView(std::move(direct));
 
     indirectParams_.update(indirectParamsData_);
 

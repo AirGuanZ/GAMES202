@@ -14,15 +14,14 @@ public:
 
     void setSampleCount(int sampleCount);
 
-    void setTracer(int maxSteps);
-
-    void setDepthThreshold(float threshold);
+    void setTracer(int maxSteps, int initialMipLevel, float initialTraceStep);
 
     ComPtr<ID3D11ShaderResourceView> getOutput() const;
 
     void render(
         ComPtr<ID3D11ShaderResourceView> gbufferA,
         ComPtr<ID3D11ShaderResourceView> gbufferB,
+        ComPtr<ID3D11ShaderResourceView> viewZMipmap,
         ComPtr<ID3D11ShaderResourceView> direct);
 
 private:
@@ -36,22 +35,23 @@ private:
 
         uint32_t sampleCount;
         uint32_t maxTraceSteps;
-        float    depthThreshold;
         float    projNearZ;
+        float    pad0;
 
         float outputWidth;
         float outputHeight;
-        float pad0;
-        float pad1;
+        int   initialMipLevel;
+        float initialTraceStep;
     };
 
     Shader<VS, PS>         shader_;
     Shader<VS, PS>::RscMgr shaderRscs_;
 
-    ShaderResourceViewSlot<PS> *gbufferASlot_   = nullptr;
-    ShaderResourceViewSlot<PS> *gbufferBSlot_   = nullptr;
-    ShaderResourceViewSlot<PS> *directSlot_     = nullptr;
-    ShaderResourceViewSlot<PS> *rawSamplesSlot_ = nullptr;
+    ShaderResourceViewSlot<PS> *gbufferASlot_    = nullptr;
+    ShaderResourceViewSlot<PS> *gbufferBSlot_    = nullptr;
+    ShaderResourceViewSlot<PS> *viewZMipmapSlot_ = nullptr;
+    ShaderResourceViewSlot<PS> *directSlot_      = nullptr;
+    ShaderResourceViewSlot<PS> *rawSamplesSlot_  = nullptr;
 
     RenderTarget renderTarget_;
 

@@ -7,7 +7,8 @@
 #include "./final.h"
 #include "./gbuffer.h"
 #include "./indirect.h"
-#include "./sm.h"
+#include "./mipmap.h"
+#include "./shadow.h"
 
 class ScreenSpaceRayTracingApplication : public Application
 {
@@ -23,17 +24,19 @@ private:
         final_   .initialize();
         gbuffer_ .initialize(window_->getClientSize());
         indirect_.initialize(window_->getClientSize());
+        mipmap_  .initialize(window_->getClientSize());
         shadow_  .initialize({ 1024, 1024});
 
         indirect_.setSampleCount(sampleCount_);
-        indirect_.setTracer(maxTraceSteps_);
-        indirect_.setDepthThreshold(depthThreshold_);
+        indirect_.setTracer(
+            maxTraceSteps_, initialMipLevel_, initialTraceStep_);
 
         window_->attach([this](const WindowPostResizeEvent &e)
         {
             direct_.resize({ e.width, e.height });
             gbuffer_.resize({ e.width, e.height });
             indirect_.resize({ e.width, e.height });
+            mipmap_.resize({ e.width, e.height });
         });
 
         meshes_.push_back(loadMesh(
@@ -100,13 +103,22 @@ private:
             if(ImGui::InputInt("Max Trace Steps", &maxTraceSteps_))
             {
                 maxTraceSteps_ = (std::max)(1, maxTraceSteps_);
-                indirect_.setTracer(maxTraceSteps_);
+                indirect_.setTracer(
+                    maxTraceSteps_, initialMipLevel_, initialTraceStep_);
             }
 
-            if(ImGui::InputFloat("Depth Threshold", &depthThreshold_))
+            if(ImGui::InputInt("Initial Mipmap Level", &initialMipLevel_))
             {
-                depthThreshold_ = (std::max)(0.0f, depthThreshold_);
-                indirect_.setDepthThreshold(depthThreshold_);
+                initialMipLevel_ = (std::max)(initialMipLevel_, 0);
+                indirect_.setTracer(
+                    maxTraceSteps_, initialMipLevel_, initialTraceStep_);
+            }
+
+            if(ImGui::InputFloat("Initial Trace Step", &initialTraceStep_))
+            {
+                initialTraceStep_ = (std::max)(initialTraceStep_, 1.0f);
+                indirect_.setTracer(
+                    maxTraceSteps_, initialMipLevel_, initialTraceStep_);
             }
 
             if(ImGui::Checkbox("Enable Direct", &enableDirect_) && !enableDirect_)
@@ -145,6 +157,10 @@ private:
             gbuffer_.render(m);
         gbuffer_.end();
 
+        // mipmap
+
+        mipmap_.generate(gbuffer_.getGBuffer(1));
+
         // direct light
 
         direct_.setLight(light, lightViewProj);
@@ -162,6 +178,7 @@ private:
             indirect_.render(
                 gbuffer_.getGBuffer(0),
                 gbuffer_.getGBuffer(1),
+                mipmap_.getOutput(),
                 direct_.getOutput());
         }
 
@@ -244,14 +261,16 @@ private:
     FinalRenderer     final_;
     GBufferGenerator  gbuffer_;
     IndirectRenderer  indirect_;
+    MipmapsGenerator  mipmap_;
     ShadowMapRenderer shadow_;
 
     bool enableDirect_   = true;
     bool enableIndirect_ = true;
 
-    int   sampleCount_    = 16;
-    int   maxTraceSteps_  = 128;
-    float depthThreshold_ = 4;
+    int   sampleCount_      = 16;
+    int   maxTraceSteps_    = 32;
+    int   initialMipLevel_  = 4;
+    float initialTraceStep_ = 10;
 
     Camera camera_;
 

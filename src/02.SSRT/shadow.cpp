@@ -1,11 +1,13 @@
-#include "./sm.h"
+#include "./shadow.h"
 
 void ShadowMapRenderer::initialize(const Int2 &res)
 {
     // shader
 
-    shader_.initializeStageFromFile<VS>("./asset/02/sm.hlsl", nullptr, "VSMain");
-    shader_.initializeStageFromFile<PS>("./asset/02/sm.hlsl", nullptr, "PSMain");
+    shader_.initializeStageFromFile<VS>(
+        "./asset/02/shadow.hlsl", nullptr, "VSMain");
+    shader_.initializeStageFromFile<PS>(
+        "./asset/02/shadow.hlsl", nullptr, "PSMain");
 
     shaderRscs_ = shader_.createResourceManager();
 
