@@ -23,7 +23,7 @@ void IndirectAccumulator::initialize(const Int2 &res)
         D3D11_TEXTURE_ADDRESS_CLAMP,
         D3D11_TEXTURE_ADDRESS_CLAMP,
         D3D11_TEXTURE_ADDRESS_CLAMP);
-    shaderRscs_.getSamplerSlot<CS>("PointSampler")->setSampler(sampler);
+    shaderRscs_.getSamplerSlot<CS>("LinearSampler")->setSampler(sampler);
 
     resize(res);
 }

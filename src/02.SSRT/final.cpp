@@ -28,7 +28,8 @@ void FinalRenderer::render(
     ComPtr<ID3D11ShaderResourceView> gbufferB,
     ComPtr<ID3D11ShaderResourceView> direct,
     ComPtr<ID3D11ShaderResourceView> indirect,
-    bool                             indirectColor)
+    bool                             indirectColor,
+    float                            exposure)
 {
     assert(direct || indirect);
 
@@ -36,6 +37,7 @@ void FinalRenderer::render(
     psParamsData.direct        = direct != nullptr;
     psParamsData.indirect      = indirect != nullptr;
     psParamsData.indirectColor = indirectColor;
+    psParamsData.exposure      = exposure;
 
     psParams_.update(psParamsData);
 

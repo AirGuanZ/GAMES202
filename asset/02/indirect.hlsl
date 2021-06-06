@@ -94,7 +94,7 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
     finishedSteps[level] = 0;
 
     float nextT[5];
-    nextT[level] = jitter * step;
+    nextT[level] = 3 * jitter * step;
 
     for(;;)
     {
@@ -132,6 +132,7 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
 
         if(level == 0)
         {
+            // TODO: use depth thickness to remove backface intersection
             posNDC = NDC;
             return true;
         }

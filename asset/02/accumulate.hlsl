@@ -18,7 +18,7 @@ Texture2D<float4> NewIndirect;
 
 RWTexture2D<float4> AccuDst;
 
-SamplerState PointSampler;
+SamplerState LinearSampler;
 
 [numthreads(THREAD_GROUP_SIZE_X, THREAD_GROUP_SIZE_Y, 1)]
 void CSMain(int3 threadIdx : SV_DispatchThreadID)
@@ -46,11 +46,11 @@ void CSMain(int3 threadIdx : SV_DispatchThreadID)
         return;
     }
 
-    float4 accuSrc = AccuSrc    .SampleLevel(PointSampler, lastUV, 0);
-    float4 lastG   = LastGBuffer.SampleLevel(PointSampler, lastUV, 0);
+    float4 accuSrc = AccuSrc    .SampleLevel(LinearSampler, lastUV, 0);
+    float4 lastG   = LastGBuffer.SampleLevel(LinearSampler, lastUV, 0);
 
     float alpha = Alpha;
-    alpha *= exp(5 * distance(lastG.xyz, worldPos));
+    alpha *= exp(min(distance(lastG.xyz, worldPos), 1));
     alpha = saturate(alpha);
     
     AccuDst[threadIdx.xy] = alpha * newIndirect + (1 - alpha) * accuSrc;

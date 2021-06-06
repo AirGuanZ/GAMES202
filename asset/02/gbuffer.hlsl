@@ -45,7 +45,6 @@ struct PSOutput
 {
     float4 output0 : SV_TARGET0;
     float4 output1 : SV_TARGET1;
-    float4 output2 : SV_TARGET2;
 };
 
 Texture2D<float3> Albedo;
@@ -64,10 +63,8 @@ PSOutput PSMain(VSOutput input)
     float3 ln = normalize(2 * Normal.Sample(LinearSampler, input.texCoord) - 1);
     float3 gn = ln.x * worldTgn + ln.y * worldBno + ln.z * worldNor;
     float2 octNor = encodeNormal(normalize(gn));
-
-    // should be divided PI in physics
-    // simply use it as 'diffuse' here
-    float3 color  = albedo;
+    
+    float3 color  = albedo / 3.14159265;
     float  color1 = packFloats(color.r, color.b);
     float  color2 = color.g;
 

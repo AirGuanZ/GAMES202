@@ -16,10 +16,10 @@ VSOutput VSMain(uint vertexID : SV_VertexID)
 
 cbuffer PSParams
 {
-    int EnableDirect;
-    int EnableIndirect;
-    int EnableIndirectColor;
-    float PSParamsPad1;
+    int   EnableDirect;
+    int   EnableIndirect;
+    int   EnableIndirectColor;
+    float Exposure;
 }
 
 Texture2D<float4> Direct;
@@ -29,6 +29,18 @@ Texture2D<float4> GBufferB;
 
 SamplerState PointSampler;
 
+#define A 2.51
+#define B 0.03
+#define C 2.43
+#define D 0.59
+#define E 0.14
+
+float3 tonemap(float3 x)
+{
+    float3 v = x * Exposure;
+    return (v * (A * v + B)) / (v * (C * v + D) + E);
+}
+
 float4 PSMain(VSOutput input) : SV_TARGET
 {
     if(EnableDirect && !EnableIndirect)
@@ -36,12 +48,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         float4 direct = Direct.SampleLevel(PointSampler, input.texCoord, 0);
         if(direct.w == 0)
             discard;
-        return float4(pow(direct.xyz, 1 / 2.2), 1);
+        return float4(pow(tonemap(direct.xyz), 1 / 2.2), 1);
     }
 
     float4 gb = GBufferB.Sample(PointSampler, input.texCoord, 0);
     
-    float colorR, colorB;
+    float colorR = 0, colorB = 0;
     unpackFloat(gb.x, colorR, colorB);
     float3 color = float3(colorR, gb.y, colorB);
 
@@ -53,12 +65,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         float4 indirect = Indirect.SampleLevel(PointSampler, input.texCoord, 0);
         if(indirect.w == 0)
             discard;
-        return float4(pow(color * indirect.xyz, 1 / 2.2), 1);
+        return float4(pow(tonemap(color * indirect.xyz), 1 / 2.2), 1);
     }
 
     float4 direct   = Direct  .SampleLevel(PointSampler, input.texCoord, 0);
     float4 indirect = Indirect.SampleLevel(PointSampler, input.texCoord, 0);
     if(direct.w == 0)
         discard;
-    return float4(pow(direct.xyz + color * indirect.xyz, 1 / 2.2), 1);
+    return float4(pow(tonemap(direct.xyz + color * indirect.xyz), 1 / 2.2), 1);
 }

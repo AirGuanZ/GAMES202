@@ -105,6 +105,10 @@ private:
 
         if(ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
+            ImGui::SliderFloat("Light Hori Angle", &lightHoriAngle_, 0, 360);
+            ImGui::SliderFloat("Light Vert Angle", &lightVertAngle_, 0, 90);
+            ImGui::SliderFloat("Light Radiance", &lightRadiance_, 0, 30);
+
             if(ImGui::InputInt("Sample Count", &sampleCount_))
             {
                 sampleCount_ = (std::max)(1, sampleCount_);
@@ -150,14 +154,22 @@ private:
             assert(enableDirect_ || enableIndirect_);
             if(enableDirect_ && enableIndirect_)
                 enableIndirectColor_ = true;
+
+            ImGui::SliderFloat("Exposure", &exposure_, 0, 2);
         }
         ImGui::End();
 
         // light
-        
+
         DirectionalLight light = {};
-        light.direction = Float3(0, -2, -0.4f).normalize();
-        light.radiance  = Float3(5);
+        light.direction = {
+             std::sin(agz::math::deg2rad(lightVertAngle_)) *
+             std::cos(agz::math::deg2rad(lightHoriAngle_)),
+            -std::cos(agz::math::deg2rad(lightVertAngle_)),
+             std::sin(agz::math::deg2rad(lightVertAngle_)) *
+             std::sin(agz::math::deg2rad(lightHoriAngle_))
+        };
+        light.radiance  = Float3(lightRadiance_);
 
         const Float3 lightLookAt = { 0, 0, 0 };
         const Mat4 lightViewProj =
@@ -201,8 +213,8 @@ private:
         if(enableIndirect_)
         {
             // hack: regenerate samples in every frame so that we can accumulate
-            // results in history frames. in theory, progressive low-disparency
-            // sequence can converge faster.
+            // different estimates in history frames
+            // ideally, progressive low-disparency sequence should be used
             indirect_.setSampleCount(sampleCount_);
 
             indirect_.setCamera(
@@ -230,13 +242,14 @@ private:
         window_->useDefaultRTVAndDSV();
         window_->useDefaultViewport();
         window_->clearDefaultDepth(1);
-        window_->clearDefaultRenderTarget({ 0, 1, 1, 0 });
-
+        window_->clearDefaultRenderTarget({ 1, 1, 1, 0 });
+        
         final_.render(
             gbuffer_->getGBuffer(1),
             enableDirect_   ? direct_.getOutput() : nullptr,
             enableIndirect_ ? accu_  .getOutput() : nullptr,
-            enableIndirectColor_);
+            enableIndirectColor_,
+            exposure_);
 
         // finalize
         
@@ -313,9 +326,15 @@ private:
 
     GBufferGenerator *gbuffer_ = nullptr;
 
-    bool enableDirect_        = true;
-    bool enableIndirect_      = true;
-    bool enableIndirectColor_ = true;
+    float lightRadiance_ = 15;
+
+    float lightHoriAngle_ = 26;
+    float lightVertAngle_ = 27;
+
+    bool  enableDirect_        = true;
+    bool  enableIndirect_      = true;
+    bool  enableIndirectColor_ = true;
+    float exposure_            = 1;
 
     int   sampleCount_      = 4;
     int   maxTraceSteps_    = 32;

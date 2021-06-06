@@ -12,7 +12,8 @@ public:
         ComPtr<ID3D11ShaderResourceView> gbufferB,
         ComPtr<ID3D11ShaderResourceView> direct,
         ComPtr<ID3D11ShaderResourceView> indirect,
-        bool                             indirectColor);
+        bool                             indirectColor,
+        float                            exposure);
 
 private:
 
@@ -21,7 +22,7 @@ private:
         int   direct;
         int   indirect;
         int   indirectColor;
-        float pad1;
+        float exposure;
     };
 
     Shader<VS, PS>         shader_;

@@ -122,9 +122,11 @@ void IndirectRenderer::render(
 
 void IndirectRenderer::updateRawSamples()
 {
+    static std::default_random_engine::result_type seed = 0;
+
     const int N = indirectParamsData_.sampleCount;
 
-    std::default_random_engine rng{ std::random_device{}() };
+    std::default_random_engine rng{ seed + 1 };
     std::uniform_real_distribution<float> dis(0, 1);
 
     std::vector<cy::Point2f> candidateSamples;
