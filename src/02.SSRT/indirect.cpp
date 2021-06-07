@@ -60,6 +60,11 @@ void IndirectRenderer::setSampleCount(int sampleCount)
     updateRawSamples();
 }
 
+void IndirectRenderer::setDepthThreshold(float threshold)
+{
+    indirectParamsData_.depthThreshold = threshold;
+}
+
 void IndirectRenderer::setTracer(
     int maxSteps, int initialMipLevel, float initialTraceStep)
 {

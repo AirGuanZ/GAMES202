@@ -28,9 +28,13 @@ cbuffer IndirectParams
 
     float OutputWidth;
     float OutputHeight;
-
     int   InitialMipLevel;
     float InitialTraceStep;
+
+    float DepthThreshold;
+    float IndirectParamsPad0;
+    float IndirectParamsPad1;
+    float IndirectParamsPad2;
 }
 
 Texture2D<float4> GBufferA;
@@ -94,7 +98,7 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
     finishedSteps[level] = 0;
 
     float nextT[5];
-    nextT[level] = 3 * jitter * step;
+    nextT[level] = jitter * step;
 
     for(;;)
     {
@@ -132,9 +136,8 @@ bool trace(float jitter, float3 ori, float3 dir, out float2 posNDC)
 
         if(level == 0)
         {
-            // TODO: use depth thickness to remove backface intersection
             posNDC = NDC;
-            return true;
+            return rayDepth - DepthThreshold <= sampledDepth;
         }
 
         level -= 2;

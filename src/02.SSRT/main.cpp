@@ -33,6 +33,7 @@ private:
         gbuffer_ = &gbufferA_;
 
         indirect_.setSampleCount(sampleCount_);
+        indirect_.setDepthThreshold(depthThreshold_);
         indirect_.setTracer(
             maxTraceSteps_, initialMipLevel_, initialTraceStep_);
 
@@ -54,8 +55,8 @@ private:
             "./asset/02/normal.jpg",
             Mat4::identity()));
 
-        camera_.setPosition({ 4, 1.26f, 2.45f });
-        camera_.setDirection(3.14159f, 0);
+        camera_.setPosition({ 3.54f, 0.58f, 1.55f });
+        camera_.setDirection(3.19f, 0.17f);
         camera_.setPerspective(60.0f, 0.1f, 100.0f);
 
         mouse_->setCursorLock(
@@ -103,6 +104,17 @@ private:
         
         // gui
 
+        ImGui::SetNextWindowBgAlpha(0.5f);
+        ImGui::SetNextWindowPos({ 0, 0 });
+        if(ImGui::Begin(
+            "Help", nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration))
+        {
+            ImGui::Text("Use LCtrl to show/hide cursor");
+        }
+        ImGui::End();
+
+        ImGui::SetNextWindowCollapsed(true, ImGuiCond_Once);
         if(ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::SliderFloat("Light Hori Angle", &lightHoriAngle_, 0, 360);
@@ -114,6 +126,9 @@ private:
                 sampleCount_ = (std::max)(1, sampleCount_);
                 indirect_.setSampleCount(sampleCount_);
             }
+
+            if(ImGui::SliderFloat("Depth Threshold", &depthThreshold_, 0.1f, 10.0f))
+                indirect_.setDepthThreshold(depthThreshold_);
 
             if(ImGui::InputInt("Max Trace Steps", &maxTraceSteps_))
             {
@@ -242,7 +257,7 @@ private:
         window_->useDefaultRTVAndDSV();
         window_->useDefaultViewport();
         window_->clearDefaultDepth(1);
-        window_->clearDefaultRenderTarget({ 1, 1, 1, 0 });
+        window_->clearDefaultRenderTarget({ 0, 0, 0, 0 });
         
         final_.render(
             gbuffer_->getGBuffer(1),
@@ -329,7 +344,7 @@ private:
     float lightRadiance_ = 15;
 
     float lightHoriAngle_ = 26;
-    float lightVertAngle_ = 27;
+    float lightVertAngle_ = 16;
 
     bool  enableDirect_        = true;
     bool  enableIndirect_      = true;
@@ -339,7 +354,8 @@ private:
     int   sampleCount_      = 4;
     int   maxTraceSteps_    = 32;
     int   initialMipLevel_  = 4;
-    float initialTraceStep_ = 16;
+    float initialTraceStep_ = 20;
+    float depthThreshold_   = 1;
 
     float accuAlpha_ = 0.05f;
 

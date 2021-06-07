@@ -14,6 +14,8 @@ public:
 
     void setSampleCount(int sampleCount);
 
+    void setDepthThreshold(float threshold);
+
     void setTracer(int maxSteps, int initialMipLevel, float initialTraceStep);
 
     ComPtr<ID3D11ShaderResourceView> getOutput() const;
@@ -42,6 +44,11 @@ private:
         float outputHeight;
         int   initialMipLevel;
         float initialTraceStep;
+
+        float depthThreshold;
+        float pad0;
+        float pad1;
+        float pad2;
     };
 
     Shader<VS, PS>         shader_;
