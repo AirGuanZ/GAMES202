@@ -108,13 +108,20 @@ private:
         ImGui::SetNextWindowPos({ 0, 0 });
         if(ImGui::Begin(
             "Help", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration))
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoBackground))
         {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1, 1, 1, 1 });
             ImGui::Text("Use LCtrl to show/hide cursor");
+            ImGui::PopStyleColor();
         }
         ImGui::End();
 
         ImGui::SetNextWindowCollapsed(true, ImGuiCond_Once);
+        ImGui::SetNextWindowPos(
+            { 10, ImGui::GetFrameHeight() + ImGui::GetTextLineHeight() },
+            ImGuiCond_Once);
         if(ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::SliderFloat("Light Hori Angle", &lightHoriAngle_, 0, 360);
@@ -272,22 +279,6 @@ private:
         window_->swapBuffers();
 
         return !window_->getCloseFlag();
-    }
-
-    static Float3 computeTangent(
-        const Float3 &BA,
-        const Float3 &CA,
-        const Float2 &uvBA,
-        const Float2 &uvCA,
-        const Float3 &nor)
-    {
-        const float m00 = uvBA.x, m01 = uvBA.y;
-        const float m10 = uvCA.x, m11 = uvCA.y;
-        const float det = m00 * m11 - m01 * m10;
-        if(std::abs(det) < 0.0001f)
-            return agz::math::tcoord3<float>::from_z(nor).x;
-        const float inv_det = 1 / det;
-        return (m11 * inv_det * BA - m01 * inv_det * CA).normalize();
     }
 
     static Mesh loadMesh(
