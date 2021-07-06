@@ -33,8 +33,7 @@ cmake ..
   * 基于poisson disk样本采样RSM，计算低分辨率间接光照，然后上采样到屏幕
   * 对G-Buffer上法线/颜色变化剧烈的部分，不使用低分辨率计算结果，转而进行精确计算
 - [x] 拓展2：Parallax Occlusion Mapping
-  * Normal Mapping，Relief Mapping以及Parallax Occlusion Mapping三种算法
-  * 准备加Quadtree Displacement Mapping的时候突然意识到这几个玩意儿不能用在延迟渲染里，限制太大，瞬间就不想写了
+  * Normal Mapping，Relief Mapping以及Parallax Occlusion Mapping
 
 ![](./gallery/00.ShadowMap.png)
 
