@@ -1,7 +1,6 @@
 #include <agz-utils/mesh.h>
 #include <agz-utils/time.h>
 
-#include <common/application.h>
 #include <common/camera.h>
 
 #include "./blur.h"
@@ -13,17 +12,17 @@
 #include "./sm.h"
 #include "./vsm.h"
 
-class ShadowMapApplication : public Application
+class ShadowMapApplication : public Demo
 {
 public:
 
-    using Application::Application;
+    using Demo::Demo;
 
 protected:
 
     void initialize() override;
 
-    bool frame() override;
+    void frame() override;
 
     void destroy() override;
 
@@ -150,13 +149,10 @@ void ShadowMapApplication::initialize()
     fps_.restart();
 }
 
-bool ShadowMapApplication::frame()
+void ShadowMapApplication::frame()
 {
     // window events
-
-    window_->doEvents();
-    window_->newImGuiFrame();
-
+    
     if(window_->getKeyboard()->isDown(KEY_ESCAPE))
         window_->setCloseFlag(true);
 
@@ -231,12 +227,7 @@ bool ShadowMapApplication::frame()
 
     ImGui::End();
 
-    window_->renderImGui();
-    window_->swapBuffers();
-
     fps_.frame_end();
-
-    return !window_->getCloseFlag();
 }
 
 void ShadowMapApplication::destroy()

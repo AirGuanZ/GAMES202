@@ -29,6 +29,9 @@ cmake ..
   * 使用mipmap优化的光线步进求交
   * 屏幕空间全局漫反射光照
   * 通过时间累积降低需要的采样数
+- [x] 作业4：Kulla-Conty模型
+  * 利用NDF重要性采样预计算KC模型所需查找表，并在实时渲染中应用
+
 - [x] 拓展1：Reflective Shadow Maps
   * 基于poisson disk样本采样RSM，计算低分辨率间接光照，然后上采样到屏幕
   * 对G-Buffer上法线/颜色变化剧烈的部分，不使用低分辨率计算结果，转而进行精确计算
@@ -41,6 +44,8 @@ cmake ..
 ![](./gallery/01.SH-PRT.png)
 
 ![](./gallery/02.SSRT.png)
+
+![](./gallery/03.KC.png)
 
 ![](./gallery/EX.00.RSM.png)
 

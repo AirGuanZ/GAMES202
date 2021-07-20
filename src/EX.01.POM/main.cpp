@@ -1,17 +1,16 @@
 #include <agz-utils/mesh.h>
 
-#include <common/application.h>
 #include <common/camera.h>
 
 #include "./normal.h"
 #include "./pom.h"
 #include "./relief.h"
 
-class ParallaxOcclusionMapping : public Application
+class ParallaxOcclusionMapping : public Demo
 {
 public:
 
-    using Application::Application;
+    using Demo::Demo;
 
 private:
 
@@ -55,12 +54,9 @@ private:
         window_->doEvents();
     }
 
-    bool frame() override
+    void frame() override
     {
         // window events
-
-        window_->doEvents();
-        window_->newImGuiFrame();
 
         if(window_->getKeyboard()->isDown(KEY_ESCAPE))
             window_->setCloseFlag(true);
@@ -188,13 +184,6 @@ private:
             relief_.render(mesh_);
             relief_.end();
         }
-
-        // finalize
-
-        window_->renderImGui();
-        window_->swapBuffers();
-
-        return !window_->getCloseFlag();
     }
 
     static Mesh loadMesh(

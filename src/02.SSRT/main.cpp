@@ -1,6 +1,5 @@
 #include <agz-utils/mesh.h>
 
-#include <common/application.h>
 #include <common/camera.h>
 
 #include "./accumulate.h"
@@ -11,11 +10,11 @@
 #include "./mipmap.h"
 #include "./shadow.h"
 
-class ScreenSpaceRayTracingApplication : public Application
+class ScreenSpaceRayTracingApplication : public Demo
 {
 public:
 
-    using Application::Application;
+    using Demo::Demo;
 
 private:
 
@@ -65,12 +64,9 @@ private:
         window_->doEvents();
     }
 
-    bool frame() override
+    void frame() override
     {
         // window events
-
-        window_->doEvents();
-        window_->newImGuiFrame();
 
         if(window_->getKeyboard()->isDown(KEY_ESCAPE))
             window_->setCloseFlag(true);
@@ -272,13 +268,6 @@ private:
             enableIndirect_ ? accu_  .getOutput() : nullptr,
             enableIndirectColor_,
             exposure_);
-
-        // finalize
-        
-        window_->renderImGui();
-        window_->swapBuffers();
-
-        return !window_->getCloseFlag();
     }
 
     static Mesh loadMesh(

@@ -1,6 +1,5 @@
 #include <agz-utils/mesh.h>
 
-#include <common/application.h>
 #include <common/camera.h>
 
 #include "./gbuffer.h"
@@ -8,11 +7,11 @@
 #include "./rsm.h"
 #include "./shade.h"
 
-class ReflectiveShadowMapApplication : public Application
+class ReflectiveShadowMapApplication : public Demo
 {
 public:
 
-    using Application::Application;
+    using Demo::Demo;
 
 private:
 
@@ -64,12 +63,9 @@ private:
         window_->doEvents();
     }
 
-    bool frame() override
+    void frame() override
     {
         // window events
-
-        window_->doEvents();
-        window_->newImGuiFrame();
 
         if(window_->getKeyboard()->isDown(KEY_ESCAPE))
             window_->setCloseFlag(true);
@@ -192,11 +188,6 @@ private:
             lowres_indirect_.getOutput());
 
         shade_.render();
-
-        window_->renderImGui();
-        window_->swapBuffers();
-
-        return !window_->getCloseFlag();
     }
 
     VertexBuffer<Vertex> loadMesh(

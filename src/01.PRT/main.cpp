@@ -3,22 +3,21 @@
 #include <agz-utils/string.h>
 #include <agz-utils/time.h>
 
-#include <common/application.h>
 #include <common/camera.h>
 
 #include "pre_env.h"
 #include "pre_mesh.h"
 #include "renderer.h"
 
-class PRTApplication : public Application
+class PRTApplication : public Demo
 {
-    using Application::Application;
+    using Demo::Demo;
 
 protected:
 
     void initialize() override;
 
-    bool frame() override;
+    void frame() override;
 
     void destroy() override;
 
@@ -105,13 +104,10 @@ void PRTApplication::initialize()
     fps_.restart();
 }
 
-bool PRTApplication::frame()
+void PRTApplication::frame()
 {
     // window events
-
-    window_->doEvents();
-    window_->newImGuiFrame();
-
+    
     if(window_->getKeyboard()->isDown(KEY_ESCAPE))
         window_->setCloseFlag(true);
 
@@ -213,12 +209,7 @@ bool PRTApplication::frame()
     if(!fullMeshSHCoefs_.empty() && !envSHCoefs_.empty())
         renderer_.render(camera_.getViewProj());
 
-    window_->renderImGui();
-    window_->swapBuffers();
-
     fps_.frame_end();
-
-    return !window_->getCloseFlag();
 }
 
 void PRTApplication::destroy()
