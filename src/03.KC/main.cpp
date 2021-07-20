@@ -29,8 +29,6 @@ protected:
                 agz::math::lerp(0.1f, 1.0f, t));
         }
 
-        lut_ = LUTGenerator().generate({ 32, 32 }, 64);
-
         camera_.setPosition({ -15, 0, 0 });
         camera_.setDirection(0, 0);
         camera_.setPerspective(60.0f, 0.1f, 100.0f);
@@ -135,10 +133,8 @@ private:
 
     std::vector<Mesh> meshes_;
 
-    bool enableKC_ = true;
+    bool     enableKC_ = true;
     Renderer renderer_;
-
-    LUTGenerator::LUT lut_;
 
     Camera camera_;
 };
