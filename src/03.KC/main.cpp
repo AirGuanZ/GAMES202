@@ -1,6 +1,5 @@
 #include <agz-utils/mesh.h>
 
-#include "lut.h"
 #include "renderer.h"
 
 class KullaContyApplication : public Demo
