@@ -31,6 +31,8 @@ cmake ..
   * 通过时间累积降低需要的采样数
 - [x] 作业4：Kulla-Conty模型
   * 利用NDF重要性采样预计算KC模型所需查找表，并在实时渲染中应用
+- [x] 作业5：光追降噪
+  * 又要写一套实时光追，实在太麻烦了，暂时没有写的打算。对光追感兴趣的话可以看看我的渲染器[Atrc](https://github.com/AirGuanZ/Atrc)。
 
 - [x] 拓展1：Reflective Shadow Maps
   * 基于poisson disk样本采样RSM，计算低分辨率间接光照，然后上采样到屏幕
